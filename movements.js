@@ -7,8 +7,6 @@ const cardinalDirections = [
 	{ x: 0, z: 1 } // west
 ]
 
-
-
 function makeMovement(position, cost) {
 	position.cost = cost
 	return position
@@ -107,11 +105,10 @@ class MoveForwardUp extends Move {
 
 class MoveForwardDown extends Move {
 	getNeighbors() {
-		const maxDropDown = 3
 		let neighbors = []
 		let forwardNode = this.forward(1)
 		let landingNode = forwardNode
-		for (let i = 0; i < maxDropDown; i++) {
+		for (let i = 0; i < 3; i++) {
 			landingNode = this.down(1, landingNode)
 			if (this.isStandable(landingNode)) break
 		}

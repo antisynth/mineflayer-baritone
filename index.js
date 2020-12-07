@@ -13,6 +13,7 @@ function inject (bot) {
 	let complexPathPoints = []
 	let headLockedUntilGround = false
 	let exactPath = false
+	let jumpQueued
 
 	function checkLandsOnPath(point, distance=0.8) {
 		if (!complexPathPoints) return false
@@ -65,9 +66,9 @@ function inject (bot) {
 		if (!returnState) return false // never landed on ground
 
 		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
-		if (jumpDistance <= 3) return false
+		let fallDistance = bot.entity.position.y - returnState.pos.y
+		if (jumpDistance <= 3 || fallDistance > 3) return false
 
-		
 		const isOnPath = checkLandsOnPath(returnState.pos)
 		if (!isOnPath) return false
 		
@@ -97,20 +98,26 @@ function inject (bot) {
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
 	}
 
+	function jump(nextTick=false) {
+		if (!nextTick) {
+			bot.setControlState('jump', true)
+			bot.setControlState('jump', false)
+			jumpQueued = false
+		} else
+			jumpQueued = true
+	}
+
 	async function straightPathTick() {
 		bot.setControlState('forward', true)
 		bot.setControlState('sprint', true)
 		if (!atPosition(pathEnd, exactPath) && (exactPath || !checkLandsOnPath(bot.entity.position))) {
-			bot.setControlState('forward', true)
-			bot.setControlState('sprint', true)
 			if (bot.entity.onGround)
 				headLockedUntilGround = false
 			if (!headLockedUntilGround)
 				await bot.lookAt(pathEnd.offset(.5, 1.625, .5), true)
 			if (bot.entity.onGround && (canSprintJump() || shouldAutoJump())) {
 				headLockedUntilGround = true
-				bot.setControlState('jump', true)
-				bot.setControlState('jump', false)
+				jump(true)
 			}
 		} else {
 			pathEnd = null
@@ -163,6 +170,8 @@ function inject (bot) {
 	}
 
 	function moveTick() {
+		if (jumpQueued)
+			jump()
 		if (bot.pathfinder.activeMovementFunction)
 			bot.pathfinder.activeMovementFunction()
 	}
