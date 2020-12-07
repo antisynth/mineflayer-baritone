@@ -2,6 +2,7 @@ const movements = require('./movements')
 const AStar = require('./astar')
 const { PlayerState } = require('prismarine-physics')
 const { distanceFromLine } = require('./pointtoline')
+const { Vec3 } = require('vec3')
 
 
 function inject (bot) {
@@ -61,6 +62,10 @@ function inject (bot) {
 		return returnState ? state : false
 	}
 
+	function isEdgeOfBlock() {
+		return !!simulateUntil((state) => {return !state.onGround}, 1)
+	}
+
 	function canSprintJump() {
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, foward: true}, true, false)
 		if (!returnState) return false // never landed on ground
@@ -85,11 +90,13 @@ function inject (bot) {
 	}
 
 	function shouldAutoJump() {
-		let blockInFrontPos
-		blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(bot.entity.velocity.scaled(10))
+		let velocity = bot.entity.velocity.scaled(20).floored().min(new Vec3(1, 0, 1))
+		let blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 		let blockInFront = bot.blockAt(blockInFrontPos, false)
 		let blockInFront1 = bot.blockAt(blockInFrontPos.offset(0, 1, 0), false)
 		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
+
+		console.log(bot.entity.position.floored(), blockInFrontPos.floored())
 
 		// if it's moving slowly and its touching a block, it should probably jump
 		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y < .05) {
@@ -117,7 +124,7 @@ function inject (bot) {
 				await bot.lookAt(pathEnd.offset(.5, 1.625, .5), true)
 			if (bot.entity.onGround && (canSprintJump() || shouldAutoJump())) {
 				headLockedUntilGround = true
-				jump(true)
+				jump(!isEdgeOfBlock())
 			}
 		} else {
 			pathEnd = null

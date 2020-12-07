@@ -83,9 +83,9 @@ class MoveDiagonal extends Move {
 		let diagonalRight = this.forward(1, this.right(1))
 		let diagonalLeft = this.forward(1, this.left(1))
 		if (this.isStandable(diagonalRight))
-			neighbors.push(makeMovement(diagonalRight, 1))
+			neighbors.push(makeMovement(diagonalRight, 1.1))
 		if (this.isStandable(diagonalLeft))
-			neighbors.push(makeMovement(diagonalLeft, 1))
+			neighbors.push(makeMovement(diagonalLeft, 1.1))
 		return neighbors
 	}
 }
@@ -119,12 +119,66 @@ class MoveForwardDown extends Move {
 	}
 }
 
+class MoveForwardParkour1 extends Move {
+	// 1 block jump
+	getNeighbors() {
+		let neighbors = []
+		let landingNode = this.forward(2)
+		let spaceNode1 = this.up(1, this.forward(1))
+		if (
+			   this.isWalkable(spaceNode1)
+			&& this.isStandable(landingNode)
+		)
+			neighbors.push(makeMovement(landingNode, 2))
+		return neighbors
+	}
+}
+
+class MoveForwardParkour2 extends Move {
+	// 2 block jump
+	getNeighbors() {
+		let neighbors = []
+		let landingNode = this.forward(3)
+		let spaceNode1 = this.up(1, this.forward(1))
+		let spaceNode2 = this.up(1, this.forward(2))
+		if (
+			   this.isWalkable(spaceNode1)
+			&& this.isWalkable(spaceNode2)
+			&& this.isStandable(landingNode)
+		)
+			neighbors.push(makeMovement(landingNode, 2))
+		return neighbors
+	}
+}
+
+class MoveForwardParkour3 extends Move {
+	// 3 block jump
+	getNeighbors() {
+		let neighbors = []
+		let landingNode = this.forward(4)
+		let spaceNode1 = this.up(1, this.forward(1))
+		let spaceNode2 = this.up(1, this.forward(2))
+		let spaceNode3 = this.up(1, this.forward(3))
+		if (
+			   this.isWalkable(spaceNode1)
+			&& this.isWalkable(spaceNode2)
+			&& this.isWalkable(spaceNode3)
+			&& this.isStandable(landingNode)
+		)
+			neighbors.push(makeMovement(landingNode, 2))
+		return neighbors
+	}
+}
+
 function getNeighbors(world, node) {
 	const moves = [
 		MoveForward,
 		MoveDiagonal,
 		MoveForwardUp,
-		MoveForwardDown
+		MoveForwardDown,
+		MoveForwardParkour1,
+		MoveForwardParkour2,
+		MoveForwardParkour3
 	]
 	let neighbors = []
 
