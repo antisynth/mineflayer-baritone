@@ -61,7 +61,6 @@ function inject (bot) {
 	}
 
 	function canSprintJump() {
-		return false // TODO: remove this
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, foward: true}, true, false)
 		if (!returnState) return false // never landed on ground
 
@@ -72,7 +71,6 @@ function inject (bot) {
 		const isOnPath = checkLandsOnPath(returnState.pos)
 		if (!isOnPath) return false
 		
-		console.log('predicted jump:', returnState.pos)
 		return true
 	}
 	
@@ -86,12 +84,17 @@ function inject (bot) {
 	}
 
 	function shouldAutoJump() {
-		let blockInFront = bot.blockAt(bot.entity.position.offset(0, 1, 0).plus(bot.entity.velocity.scaled(10)), false)
+		let blockInFrontPos
+		blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(bot.entity.velocity.scaled(10))
+		let blockInFront = bot.blockAt(blockInFrontPos, false)
+		let blockInFront1 = bot.blockAt(blockInFrontPos.offset(0, 1, 0), false)
+		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
 
 		// if it's moving slowly and its touching a block, it should probably jump
-		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y < .1)
+		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y < .05) {
 			return true
-		return blockInFront.boundingBox === 'block'
+		}
+		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
 	}
 
 	async function straightPathTick() {
@@ -100,14 +103,15 @@ function inject (bot) {
 		if (!atPosition(pathEnd, exactPath) && (exactPath || !checkLandsOnPath(bot.entity.position))) {
 			bot.setControlState('forward', true)
 			bot.setControlState('sprint', true)
+			if (bot.entity.onGround)
+				headLockedUntilGround = false
 			if (!headLockedUntilGround)
 				await bot.lookAt(pathEnd.offset(.5, 1.625, .5), true)
 			if (bot.entity.onGround && (canSprintJump() || shouldAutoJump())) {
 				headLockedUntilGround = true
 				bot.setControlState('jump', true)
 				bot.setControlState('jump', false)
-			} else if (bot.entity.onGround)
-				headLockedUntilGround = false
+			}
 		} else {
 			pathEnd = null
 			bot.pathfinder.activeMovementFunction = null
@@ -141,14 +145,14 @@ function inject (bot) {
 			timeout: 1000
 		})
 		complexPathPoints = result.path
-		console.log(complexPathPoints.length, 'total :)', complexPathPoints)
+		console.log(result)
 		while (complexPathPoints.length > 0) {
 			const movement = complexPathPoints[0]
 			await straightPath(movement)
 			complexPathPoints.shift()
 		}
-		if (result.status == 'success')
-			await straightPath(position, true) // do one more straight path just to make sure its at the exact position
+		// if (result.status == 'success')
+		// 	await straightPath(position, true) // do one more straight path just to make sure its at the exact position
 		complexPathPoints = null
 		console.log('arrived!')
 	}

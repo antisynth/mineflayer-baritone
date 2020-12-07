@@ -83,8 +83,11 @@ class MoveDiagonal extends Move {
 	getNeighbors() {
 		let neighbors = []
 		let diagonalRight = this.forward(1, this.right(1))
+		let diagonalLeft = this.forward(1, this.left(1))
 		if (this.isStandable(diagonalRight))
 			neighbors.push(makeMovement(diagonalRight, 1))
+		if (this.isStandable(diagonalLeft))
+			neighbors.push(makeMovement(diagonalLeft, 1))
 		return neighbors
 	}
 }
@@ -104,9 +107,14 @@ class MoveForwardUp extends Move {
 
 class MoveForwardDown extends Move {
 	getNeighbors() {
+		const maxDropDown = 3
 		let neighbors = []
-		let landingNode = this.forward(1, this.down(1))
 		let forwardNode = this.forward(1)
+		let landingNode = forwardNode
+		for (let i = 0; i < maxDropDown; i++) {
+			landingNode = this.down(1, landingNode)
+			if (this.isStandable(landingNode)) break
+		}
 
 		if (this.isStandable(landingNode) && this.isWalkable(forwardNode))
 			neighbors.push(makeMovement(landingNode, 1))
