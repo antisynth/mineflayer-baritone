@@ -1,0 +1,27 @@
+{
+  "name": "mineflayer-baritone",
+  "version": "0.0.1",
+  "description": "Baritone in Mineflayer",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mat-1/mineflayer-baritone.git"
+  },
+  "keywords": [
+    "minecraft",
+    "mineflayer",
+    "pathfinding"
+  ],
+  "author": "mat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mat-1/mineflayer-baritone/issues"
+  },
+  "homepage": "https://github.com/mat-1/mineflayer-baritone#readme",
+  "dependencies": {
+    "mineflayer": "^2.37.1"
+  }
+}
