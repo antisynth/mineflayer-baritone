@@ -1,4 +1,5 @@
 const Heap = require('./heap')
+const { performance } = require('perf_hooks')
 
 module.exports = AStar;
 
@@ -22,12 +23,13 @@ function AStar({ start, isEnd, neighbor, heuristic, timeout, hash }) {
 	var startTime = new Date();
 
 	return new Promise(async(resolve) => {
-		let iteration = 0
+		let lastSleep = performance.now()
 		while (!openHeap.isEmpty()) {
-			iteration ++
-			if (iteration % 10 == 0)
+			if (performance.now() - lastSleep >= 50) {
 				// need to do this so the bot doesnt lag
 				await new Promise(r => setTimeout(r, 0))
+				lastSleep = performance.now()
+			}
 
 			if (new Date() - startTime > timeout)
 				return resolve({
