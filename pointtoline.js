@@ -7,9 +7,10 @@ function distanceFromLine(lineStart, lineEnd, point) {
 		return A
 	else if (A*A > B*B + C*C)
 		return B
-	else
+	else {
 		s = (A + B + C) / 2
-		return 2/C * Math.sqrt(s * (s-A) * (s-B) * (s-C))
+		return 2 / C * Math.sqrt(s * (s-A) * (s-B) * (s-C))
+	}
 }
 
 module.exports = { distanceFromLine }

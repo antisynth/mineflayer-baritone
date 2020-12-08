@@ -7,19 +7,24 @@ const { performance } = require('perf_hooks')
 
 function inject (bot) {
 	bot.pathfinder = {}
-	bot.pathfinder.activeMovementFunction = null
-	bot.pathfinder.resolve = null
+	let straightPathResolve = null
 	let targetEntity = null
 	let straightPathTarget = null
 	let complexPathTarget = null
-	let goingToPathTarget = null
 	let complexPathPoints = []
 	let headLockedUntilGround = false
 	let walkingUntilGround = false
-	let exactPath = false
 	let calculating = false
 	let lastFollowed = performance.now()
-	let continuousPath = false
+	let currentPathNumber = 0
+	let currentCalculatedPathNumber = 0
+
+	function isPlayerOnBlock(playerPosition, blockPosition, distance=.8) {
+		const xDistance = Math.abs(playerPosition.x - blockPosition.x)
+		const zDistance = Math.abs(playerPosition.z - blockPosition.z)
+		const yDistance = Math.abs(playerPosition.y - blockPosition.y)
+		return !(xDistance > distance || zDistance > distance || yDistance > 2)
+	}
 
 	function isPointOnPath(point, distance=0.8) {
 		// returns true if a point is on the current path
@@ -28,11 +33,14 @@ function inject (bot) {
 		}
 
 		if (complexPathPoints.length == 1)
-			return complexPathPoints[0].distanceTo(point) < distance
+			return isPlayerOnBlock(point, complexPathPoints[0], distance)
 		let pathIndex
 		for (pathIndex = 1; pathIndex < complexPathPoints.length; ++pathIndex) {
 			let segmentStart = complexPathPoints[pathIndex - 1]
 			let segmentEnd = complexPathPoints[pathIndex]
+
+			if (isPlayerOnBlock(point, segmentStart, distance) || isPlayerOnBlock(point, segmentEnd, distance)) return true
+
 			let calculatedDistance = distanceFromLine(segmentStart, segmentEnd, point.offset(-.5, 0, -.5))
 			if (calculatedDistance < distance) return true
 		}
@@ -108,14 +116,6 @@ function inject (bot) {
 		return true
 	}
 	
-	function atPosition(position, exact=false) {
-		let distanceX = exact ? .1 : .8
-		let distanceY = exact ? 1.5 : 1
-		return (
-			   bot.entity.position.xzDistanceTo(position.offset(.5, 0, .5)) < distanceX
-			&& Math.abs(bot.entity.position.y - position.y) < distanceY
-		)
-	}
 
 	function shouldAutoJump() {
 		let velocity = bot.entity.velocity.scaled(10).floored().min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
@@ -148,16 +148,13 @@ function inject (bot) {
 	async function straightPathTick() {
 		bot.setControlState('sprint', !walkingUntilGround)
 		bot.setControlState('forward', true)
-		if (!atPosition(straightPathTarget, exactPath) && (exactPath || !isPointOnPath(bot.entity.position))) {
+		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget) && !isPointOnPath(bot.entity.position)) {
 			if (bot.entity.onGround && shouldAutoJump()) {
-				console.log('stepping up!')
 				bot.setControlState('jump', true)
 			} else if (bot.entity.onGround && canSprintJump()) {
-				console.log('sprint jumping!')
 				headLockedUntilGround = true
 				bot.setControlState('jump', true)
 			} else if (bot.entity.onGround && canWalkJump()) {
-				console.log('walk jumping!')
 				bot.setControlState('sprint', false)
 				headLockedUntilGround = false
 				walkingUntilGround = true
@@ -168,29 +165,28 @@ function inject (bot) {
 					walkingUntilGround = false
 					bot.setControlState('jump', false)
 				}
-				if (!headLockedUntilGround)
-					bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
+				if (!headLockedUntilGround) {
+					await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
+				}
 			}
 		} else {
 			straightPathTarget = null
 			headLockedUntilGround = false
 			walkingUntilGround = false
-			bot.pathfinder.activeMovementFunction = null
-			bot.pathfinder.resolve()
+			straightPathResolve()
 		}
 	}
 
-	function straightPath(position, exact=false) {
+	function straightPath(position) {
 		straightPathTarget = position
-		exactPath = exact
-		bot.pathfinder.activeMovementFunction = straightPathTick
 		return new Promise((resolve, reject) => {
-			bot.pathfinder.resolve = resolve
+			straightPathResolve = resolve
 		})
 	}
 
 	function followTick() {
 		let entity = bot.entities[targetEntity.id]
+		if (!entity.onGround) return
 		let entityMoved = complexPathTarget === null || !entity.position.equals(complexPathTarget)
 		let followedAgo = performance.now() - lastFollowed
 		if (!calculating && entityMoved && followedAgo > 100) {
@@ -205,6 +201,7 @@ function inject (bot) {
 
 	async function complexPath(pathPosition) {
 		const position = pathPosition.clone()
+		let pathNumber = ++currentPathNumber
 		complexPathTarget = position.clone()
 		calculating = true
 		continuousPath = true
@@ -212,7 +209,7 @@ function inject (bot) {
 		const result = await AStar({
 			start: start,
 			isEnd: (node) => {
-				return node.distanceTo(position) <= 1
+				return isPlayerOnBlock(node, position)
 			},
 			neighbor: (node) => {
 				return movements.getNeighbors(bot.world, node)
@@ -222,20 +219,17 @@ function inject (bot) {
 			},
 			timeout: 1000
 		})
-		if (!complexPathTarget.equals(position)) {
-			return console.log('looks like the path changed while calculating!')
-		}
+		if (currentCalculatedPathNumber > pathNumber) return
+		else currentCalculatedPathNumber = pathNumber
 		goingToPathTarget = position.clone()
 		calculating = false
 		complexPathPoints = result.path
 		while (complexPathPoints.length > 0) {
 			const movement = complexPathPoints[0]
 			await straightPath(movement)
-			if (!goingToPathTarget.equals(position)) return console.log('looks like the path changed!')
+			if (currentCalculatedPathNumber > pathNumber) return
 			complexPathPoints.shift()
 		}
-		// if (result.status == 'success')
-		// 	await straightPath(position, true) // do one more straight path just to make sure its at the exact position
 		complexPathPoints = null
 		bot.clearControlStates()
 	}
@@ -251,7 +245,7 @@ function inject (bot) {
 
 	function moveTick() {
 		if (targetEntity) followTick()
-		if (bot.pathfinder.activeMovementFunction) bot.pathfinder.activeMovementFunction()
+		if (straightPathTarget) straightPathTick()
 	}
 
 	bot.on('physicTick', moveTick)
