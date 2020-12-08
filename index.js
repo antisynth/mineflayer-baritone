@@ -20,16 +20,20 @@ function inject (bot) {
 	let calculating = false
 	let lastFollowed = performance.now()
 
-	function checkLandsOnPath(point, distance=0.8) {
-		if (!complexPathPoints) return false
+	function isPointOnPath(point, distance=0.8) {
+		// returns true if a point is on the current path
+		if (!complexPathPoints) {
+			return false
+		}
+
+		if (complexPathPoints.length == 1)
+			return complexPathPoints[0].distanceTo(point) < distance
 		let pathIndex
 		for (pathIndex = 1; pathIndex < complexPathPoints.length; ++pathIndex) {
 			let segmentStart = complexPathPoints[pathIndex - 1]
 			let segmentEnd = complexPathPoints[pathIndex]
 			let calculatedDistance = distanceFromLine(segmentStart, segmentEnd, point.offset(-.5, 0, -.5))
-			if (calculatedDistance < distance) {
-				return true
-			}
+			if (calculatedDistance < distance) return true
 		}
 		return false
 	}
@@ -66,6 +70,10 @@ function inject (bot) {
 		return returnState ? state : false
 	}
 
+	function isEdgeOfBlock(ticks=1) {
+		return !!simulateUntil((state) => {return !state.onGround}, ticks)
+	}
+
 	function canSprintJump() {
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
@@ -73,8 +81,8 @@ function inject (bot) {
 		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
 		let fallDistance = bot.entity.position.y - returnState.pos.y
 		if (jumpDistance <= 1 || fallDistance > 3) return false
-		
-		const isOnPath = checkLandsOnPath(returnState.pos)
+
+		const isOnPath = isPointOnPath(returnState.pos)
 		if (!isOnPath) return false
 		
 		return true
@@ -85,10 +93,14 @@ function inject (bot) {
 		if (!returnState) return false // never landed on ground
 
 		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
+
+		console.log('walk jump1', returnState.pos)
+
 		let fallDistance = bot.entity.position.y - returnState.pos.y
-		if (jumpDistance <= 3 || fallDistance > 3) return false
+		if (jumpDistance <= 1 || fallDistance > 3) return false
 		
-		const isOnPath = checkLandsOnPath(returnState.pos)
+		const isOnPath = isPointOnPath(returnState.pos)
+		console.log('walk jump2', isOnPath)
 		if (!isOnPath) return false
 		
 		return true
@@ -111,9 +123,9 @@ function inject (bot) {
 		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
 
 		// if it's moving slowly and its touching a block, it should probably jump
-		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y < .05) {
-			return true
-		}
+		// if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y == 0) {
+		// 	return true
+		// }
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
 	}
 
@@ -123,24 +135,35 @@ function inject (bot) {
 	}
 
 	async function straightPathTick() {
-		bot.setControlState('forward', true)
 		bot.setControlState('sprint', !walkingUntilGround)
-		if (!atPosition(straightPathTarget, exactPath) && (exactPath || !checkLandsOnPath(bot.entity.position))) {
-			if (bot.entity.onGround)
-				headLockedUntilGround = false
-				walkingUntilGround = false
-			if (!headLockedUntilGround)
-				await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
-			if (bot.entity.onGround && (canSprintJump() || shouldAutoJump())) {
+		bot.setControlState('forward', true)
+		if (!atPosition(straightPathTarget, exactPath) && (exactPath || !isPointOnPath(bot.entity.position))) {
+			if (bot.entity.onGround && shouldAutoJump()) {
+				console.log('stepping up!')
+				jump()
+			} else if (bot.entity.onGround && canSprintJump()) {
+				console.log('sprint jumping!')
 				headLockedUntilGround = true
 				jump()
-			}
-			if (bot.entity.onGround && canWalkJump()) {
+			} else if (bot.entity.onGround && canWalkJump()) {
+				console.log('walk jumping!')
+				bot.setControlState('sprint', false)
+				headLockedUntilGround = false
 				walkingUntilGround = true
 				jump()
+			} else {
+				console.log('current target:', straightPathTarget)
+				if (bot.entity.onGround) {
+					headLockedUntilGround = false
+					walkingUntilGround = false
+				}
+				if (!headLockedUntilGround)
+					bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
 			}
 		} else {
 			straightPathTarget = null
+			headLockedUntilGround = false
+			walkingUntilGround = false
 			bot.pathfinder.activeMovementFunction = null
 			bot.clearControlStates()
 			bot.pathfinder.resolve()

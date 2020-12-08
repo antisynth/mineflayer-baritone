@@ -17,9 +17,9 @@ class MoveDiagonal extends Move {
 		let diagonalRight = this.forward(1, this.right(1))
 		let diagonalLeft = this.forward(1, this.left(1))
 		if (this.isStandable(diagonalRight))
-			neighbors.push(this.makeMovement(diagonalRight, 1.1))
+			neighbors.push(this.makeMovement(diagonalRight, 1))
 		if (this.isStandable(diagonalLeft))
-			neighbors.push(this.makeMovement(diagonalLeft, 1.1))
+			neighbors.push(this.makeMovement(diagonalLeft, 1))
 		return neighbors
 	}
 }

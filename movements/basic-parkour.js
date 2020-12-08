@@ -56,9 +56,11 @@ class MoveForwardUpParkour1 extends Move {
 	getNeighbors() {
 		let neighbors = []
 		let landingNode = this.up(1, this.forward(2))
+		let firstGap = this.forward(1)
 		let spaceNode1 = this.up(1, this.forward(1))
 		if (
-			   this.isWalkable(spaceNode1)
+			   this.isWalkable(firstGap)
+			&& this.isWalkable(spaceNode1)
 			&& this.isStandable(landingNode)
 		)
 			neighbors.push(this.makeMovement(landingNode, 2))
@@ -71,10 +73,12 @@ class MoveForwardUpParkour2 extends Move {
 	getNeighbors() {
 		let neighbors = []
 		let landingNode = this.up(1, this.forward(3))
+		let firstGap = this.forward(1)
 		let spaceNode1 = this.up(1, this.forward(1))
 		let spaceNode2 = this.up(1, this.forward(2))
 		if (
-			   this.isWalkable(spaceNode1)
+			   this.isWalkable(firstGap)
+			&& this.isWalkable(spaceNode1)
 			&& this.isWalkable(spaceNode2)
 			&& this.isStandable(landingNode)
 		)
@@ -97,10 +101,49 @@ class MoveForwardUpParkour3 extends Move {
 			&& this.isWalkable(spaceNode3)
 			&& this.isStandable(landingNode)
 		)
-			neighbors.push(this.makeMovement(landingNode, 2))
+			neighbors.push(this.makeMovement(landingNode, 5))
+		return neighbors
+	}
+}
+
+class MoveForwardDownParkour1 extends Move {
+	// 1 block jump going downward
+	getNeighbors() {
+		let neighbors = []
+		let landingNode = this.down(1, this.forward(2))
+		let spaceNode1 = this.up(0, this.forward(1))
+		if (
+			   this.isWalkable(spaceNode1)
+			&& !this.isStandable(spaceNode1)
+			&& this.isStandable(landingNode)
+		) {
+			console.log('spaceNode1', spaceNode1, this.origin)
+			neighbors.push(this.makeMovement(landingNode, 1.9))
+		}
+		return neighbors
+	}
+}
+
+class MoveForwardDownParkour2 extends Move {
+	// 1 block jump going downward
+	getNeighbors() {
+		let neighbors = []
+		let landingNode = this.down(1, this.forward(3))
+		let spaceNode1 = this.up(1, this.forward(1))
+		let spaceNode2 = this.up(1, this.forward(2))
+		if (
+			   this.isWalkable(spaceNode1)
+			&& this.isWalkable(spaceNode2)
+			&& this.isStandable(landingNode)
+		)
+			neighbors.push(this.makeMovement(landingNode, 2.1))
 		return neighbors
 	}
 }
 
 
-registerMoves([ MoveForwardParkour1, MoveForwardParkour2, MoveForwardParkour3, MoveForwardUpParkour1, MoveForwardUpParkour2, MoveForwardUpParkour3 ])
+registerMoves([
+	MoveForwardParkour1, MoveForwardParkour2, MoveForwardParkour3,
+	MoveForwardUpParkour1, MoveForwardUpParkour2, //MoveForwardUpParkour3, this is way too hard to do consistently
+	MoveForwardDownParkour1, MoveForwardDownParkour2
+])
