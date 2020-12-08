@@ -19,7 +19,7 @@ function inject (bot) {
 	let currentPathNumber = 0
 	let currentCalculatedPathNumber = 0
 
-	function isPlayerOnBlock(playerPosition, blockPosition, distance=.799) {
+	function isPlayerOnBlock(playerPosition, blockPosition) {
 		// returns true if you can stand on the block
 
 		if (!blockPosition) return false // theres no target position lmao
@@ -27,25 +27,26 @@ function inject (bot) {
 		const xDistance = Math.abs(playerPosition.x - blockPosition.x)
 		const zDistance = Math.abs(playerPosition.z - blockPosition.z)
 		const yDistance = Math.abs(playerPosition.y - blockPosition.y)
-		return !(xDistance > distance || zDistance > distance || yDistance > 1)
+
+		return (xDistance < .7 && zDistance < .7 && yDistance < 2) || (xDistance < .8 && zDistance < .8 && yDistance < .1)
 	}
 
-	function isPointOnPath(point, distance=0.799) {
+	function isPointOnPath(point) {
 		// returns true if a point is on the current path
 		if (!complexPathPoints)
 			return false
 
 		if (complexPathPoints.length == 1)
-			return isPlayerOnBlock(point, complexPathPoints[0], distance)
+			return isPlayerOnBlock(point, complexPathPoints[0])
 		let pathIndex
 		for (pathIndex = 1; pathIndex < complexPathPoints.length; ++pathIndex) {
 			let segmentStart = complexPathPoints[pathIndex - 1]
 			let segmentEnd = complexPathPoints[pathIndex]
 
-			if (isPlayerOnBlock(point, segmentStart, distance) || isPlayerOnBlock(point, segmentEnd, distance)) return true
+			if (isPlayerOnBlock(point, segmentStart) || isPlayerOnBlock(point, segmentEnd)) return true
 
 			let calculatedDistance = distanceFromLine(segmentStart, segmentEnd, point.offset(-.5, 0, -.5))
-			if (calculatedDistance < distance) return true
+			if (calculatedDistance < .7) return true
 		}
 		return false
 	}
@@ -124,19 +125,20 @@ function inject (bot) {
 
 	function shouldAutoJump() {
 		// checks if there's a block in front of the bot
-		let velocity = bot.entity.velocity.scaled(10).floored().min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
+		const scaledVelocity = bot.entity.velocity.scaled(20).floored()
+		let velocity = scaledVelocity.min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
 		let blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 		let blockInFront = bot.blockAt(blockInFrontPos, false)
 
 		if (blockInFront.boundingBox !== 'block') {
 			// x
-			velocity = bot.entity.velocity.scaled(10).floored().min(new Vec3(1, 0, 0)).max(new Vec3(-1, 0, 0))
+			velocity = scaledVelocity.min(new Vec3(1, 0, 0)).max(new Vec3(-1, 0, 0))
 			blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 			blockInFront = bot.blockAt(blockInFrontPos, false)	
 		}
 		if (blockInFront.boundingBox !== 'block') {
 			// z
-			velocity = bot.entity.velocity.scaled(10).floored().min(new Vec3(0, 0, 1)).max(new Vec3(0, 0, -1))
+			velocity = scaledVelocity.min(new Vec3(0, 0, 1)).max(new Vec3(0, 0, -1))
 			blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 			blockInFront = bot.blockAt(blockInFrontPos, false)	
 		}
@@ -144,7 +146,8 @@ function inject (bot) {
 		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
 
 		// if it's moving slowly and its touching a block, it should probably jump
-		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y < 0.01) {
+		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.z < 0.01) {
+			console.log('doing autojump')
 			return true
 		}
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
@@ -180,6 +183,7 @@ function inject (bot) {
 		} else {
 			// arrived at path ending :)
 			// there will be more paths if its using complex pathfinding
+			console.log(straightPathTarget)
 			straightPathTarget = null
 			headLockedUntilGround = false
 			walkingUntilGround = false
