@@ -21,6 +21,9 @@ function inject (bot) {
 
 	function isPlayerOnBlock(playerPosition, blockPosition, distance=.799) {
 		// returns true if you can stand on the block
+
+		if (!blockPosition) return false // theres no target position lmao
+
 		const xDistance = Math.abs(playerPosition.x - blockPosition.x)
 		const zDistance = Math.abs(playerPosition.z - blockPosition.z)
 		const yDistance = Math.abs(playerPosition.y - blockPosition.y)
@@ -157,7 +160,7 @@ function inject (bot) {
 		if (!headLockedUntilGround) {
 			await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
 		}
-		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget)  ){// && !isPointOnPath(bot.entity.position)) {
+		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget) && !isPointOnPath(bot.entity.position)) {
 			if (bot.entity.onGround && shouldAutoJump()) {
 				bot.setControlState('jump', true)
 				console.log('autojump!')
