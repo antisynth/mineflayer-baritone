@@ -222,11 +222,11 @@ function inject (bot) {
 			},
 			timeout: 1000
 		})
-		goingToPathTarget = position
+		goingToPathTarget = position.clone()
 		calculating = false
 		complexPathPoints = result.path
 		while (complexPathPoints.length > 0) {
-			if (goingToPathTarget != position) return console.log('looks like the path changed!')
+			if (!goingToPathTarget.equals(position)) return console.log('looks like the path changed!')
 			const movement = complexPathPoints[0]
 			await straightPath(movement)
 			complexPathPoints.shift()
