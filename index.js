@@ -7,9 +7,13 @@ const { performance } = require('perf_hooks')
 
 function inject (bot) {
 	bot.pathfinder = {}
-	let straightPathResolve = null
+
+	bot.nearbyTimeout = 100 // use this timeout if the bot is within 50 blocks
+	bot.maxTimeout = 1000
+
+
 	let targetEntity = null
-	let straightPathTarget = null
+	let straightPathOptions = null
 	let complexPathTarget = null
 	let complexPathPoints = []
 	let headLockedUntilGround = false
@@ -66,19 +70,27 @@ function inject (bot) {
 		}
 	}
 
-	function simulateUntil(func, ticks=1, controlstate={}, returnState=false, returnInitial=true) {
+	function simulateUntil(func, ticks=1, controlstate={}, returnState=false, returnInitial=true, extraState) {
 		// simulate the physics for the bot until func returns true for a number of ticks
 		const originalState = getControlState()
 		const simulationState = originalState
 		Object.assign(simulationState, controlstate)
 		const state = new PlayerState(bot, simulationState)
+		Object.assign(state, extraState)
 		if (func(state) && returnInitial) return state
 		const world = { getBlock: (pos) => { return bot.blockAt(pos, false) } }
 
+		let airTicks = 0
 
 		for (let i = 0; i < ticks; i++) {
 			state.state = simulationState
 			bot.physics.simulatePlayer(state, world)
+
+			// this is used by tryStraightPath to make sure it doesnt take fall damage
+			if (!state.onGround) airTicks++
+			else airTicks = 0
+			state.airTicks = airTicks
+
 			if (func(state)) return state
 		}
 		return returnState ? state : false
@@ -160,10 +172,12 @@ function inject (bot) {
 		// straight line towards the current target, and jump if necessary
 		bot.setControlState('sprint', !walkingUntilGround)
 		bot.setControlState('forward', true)
+		const target = straightPathOptions.target
+		const allowSkippingPath = straightPathOptions.skip
 		if (!headLockedUntilGround) {
-			await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
+			await bot.lookAt(target.offset(.5, 1.625, .5), true)
 		}
-		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget, bot.entity.onGround) && !isPointOnPath(bot.entity.position)) {
+		if (!isPlayerOnBlock(bot.entity.position, target, bot.entity.onGround) && !(allowSkippingPath && isPointOnPath(bot.entity.position))) {
 			if (bot.entity.onGround && shouldAutoJump()) {
 				bot.setControlState('jump', true)
 				// autojump!
@@ -185,17 +199,21 @@ function inject (bot) {
 		} else {
 			// arrived at path ending :)
 			// there will be more paths if its using complex pathfinding
-			straightPathTarget = null
+			if (straightPathOptions)
+				straightPathOptions.resolve()
+			straightPathOptions = null
 			headLockedUntilGround = false
 			walkingUntilGround = false
-			straightPathResolve()
 		}
 	}
 
-	function straightPath(position) {
-		straightPathTarget = position
+	function straightPath({ target, skip }) {
+		straightPathOptions = { target, skip: skip ?? true }
 		return new Promise((resolve, reject) => {
-			straightPathResolve = resolve
+			if (straightPathOptions)
+				straightPathOptions.resolve = resolve
+			else
+				resolve()
 		})
 	}
 
@@ -216,6 +234,35 @@ function inject (bot) {
 		targetEntity = entity
 	}
 
+	function convertPointToDirection(point) {
+		const delta = point.minus(bot.entity.position.offset(0, bot.entity.height, 0))
+		const yaw = Math.atan2(-delta.x, -delta.z)
+		const groundDistance = Math.sqrt(delta.x * delta.x + delta.z * delta.z)
+		const pitch = Math.atan2(delta.y, groundDistance)
+		return {
+			pitch, yaw
+		}
+	}
+
+	function tryStraightPath(target) {
+		const isStateGood = (state) => {
+			if (!state) return false
+			if (state.airTicks > 15) return false // if youre falling for more than 15 ticks, then its probably too dangerous
+			if (state.isCollidedHorizontally) return false
+			if (isPlayerOnBlock(state.pos, target)) return true
+			return null
+		}
+
+		const shouldStop = (state) => {
+			return isStateGood(state) !== null
+		}
+		
+		// try sprint jumping towards the player for 10 seconds
+		const returnState = simulateUntil(shouldStop, 200, {jump: true, sprint: true, forward: true}, true, false, convertPointToDirection(target))
+		if (!isStateGood(returnState)) return false
+		return true
+	}
+
 	async function complexPath(pathPosition) {
 		const position = pathPosition.clone()
 		let pathNumber = ++currentPathNumber
@@ -223,29 +270,38 @@ function inject (bot) {
 		calculating = true
 		continuousPath = true
 		const start = bot.entity.position.floored()
-		const result = await AStar({
-			start: start,
-			isEnd: (node) => {
-				return isPlayerOnBlock(node, position)
-			},
-			neighbor: (node) => {
-				return movements.getNeighbors(bot.world, node)
-			},
-			heuristic: (node) => {
-				return node.distanceTo(position)
-			},
-			timeout: 1000
-		})
-		if (currentCalculatedPathNumber > pathNumber) return
-		else currentCalculatedPathNumber = pathNumber
-		goingToPathTarget = position.clone()
-		calculating = false
-		complexPathPoints = result.path
-		while (complexPathPoints.length > 0) {
-			const movement = complexPathPoints[0]
-			await straightPath(movement)
+		if (tryStraightPath(position)) {
+			bot.lookAt(position, true)
+			calculating = false
+			goingToPathTarget = position.clone()
+			complexPathPoints = [start, position]
+			await straightPath({target: position, skip: false})
+		} else {
+			const timeout = position.distanceTo(start) > 50 ? bot.maxTimeout : bot.nearbyTimeout
+			const result = await AStar({
+				start: start,
+				isEnd: (node) => {
+					return isPlayerOnBlock(node, position)
+				},
+				neighbor: (node) => {
+					return movements.getNeighbors(bot.world, node)
+				},
+				heuristic: (node) => {
+					return node.distanceTo(position)
+				},
+				timeout
+			})
 			if (currentCalculatedPathNumber > pathNumber) return
-			complexPathPoints.shift()
+			else currentCalculatedPathNumber = pathNumber
+			goingToPathTarget = position.clone()
+			calculating = false
+			complexPathPoints = result.path
+			while (complexPathPoints.length > 0) {
+				const movement = complexPathPoints[0]
+				await straightPath({target: movement})
+				if (currentCalculatedPathNumber > pathNumber) return
+				complexPathPoints.shift()
+			}
 		}
 		complexPathPoints = null
 		bot.clearControlStates()
@@ -262,7 +318,7 @@ function inject (bot) {
 
 	function moveTick() {
 		if (targetEntity) followTick()
-		if (straightPathTarget) straightPathTick()
+		if (straightPathOptions !== null) straightPathTick()
 	}
 
 	bot.on('physicTick', moveTick)
