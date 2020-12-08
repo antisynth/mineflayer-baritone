@@ -147,7 +147,6 @@ function inject (bot) {
 
 		// if it's moving slowly and its touching a block, it should probably jump
 		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.z < 0.01) {
-			console.log('doing autojump')
 			return true
 		}
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
@@ -183,7 +182,6 @@ function inject (bot) {
 		} else {
 			// arrived at path ending :)
 			// there will be more paths if its using complex pathfinding
-			console.log(straightPathTarget)
 			straightPathTarget = null
 			headLockedUntilGround = false
 			walkingUntilGround = false
