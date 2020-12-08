@@ -94,7 +94,6 @@ function inject (bot) {
 		const isOnPath = isPointOnPath(returnState.pos)
 		if (!isOnPath) return false
 		
-		console.log('falling to', returnState.pos, 'from', bot.entity.position)
 		return true
 	}
 
@@ -119,7 +118,6 @@ function inject (bot) {
 		// if it can do just as good just from sprinting, then theres no point in jumping
 		if (isStateGood(returnStateWithoutJump)) return false
 		
-		console.log('hopping to', returnState.pos, 'from', bot.entity.position)
 		return true
 	}
 	
@@ -163,7 +161,7 @@ function inject (bot) {
 		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget) && !isPointOnPath(bot.entity.position)) {
 			if (bot.entity.onGround && shouldAutoJump()) {
 				bot.setControlState('jump', true)
-				console.log('autojump!')
+				// autojump!
 			} else if (bot.entity.onGround && canSprintJump()) {
 				headLockedUntilGround = true
 				bot.setControlState('jump', true)
@@ -180,7 +178,8 @@ function inject (bot) {
 				}
 			}
 		} else {
-			console.log('arrived at', straightPathTarget)
+			// arrived at path ending :)
+			// there will be more paths if its using complex pathfinding
 			straightPathTarget = null
 			headLockedUntilGround = false
 			walkingUntilGround = false
