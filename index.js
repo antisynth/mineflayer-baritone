@@ -69,10 +69,10 @@ function inject (bot) {
 	function canSprintJump() {
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
-
+		
 		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
 		let fallDistance = bot.entity.position.y - returnState.pos.y
-		if (jumpDistance <= 3 || fallDistance > 3) return false
+		if (jumpDistance <= 1 || fallDistance > 3) return false
 		
 		const isOnPath = checkLandsOnPath(returnState.pos)
 		if (!isOnPath) return false
