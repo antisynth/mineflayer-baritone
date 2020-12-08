@@ -19,18 +19,18 @@ function inject (bot) {
 	let currentPathNumber = 0
 	let currentCalculatedPathNumber = 0
 
-	function isPlayerOnBlock(playerPosition, blockPosition, distance=.8) {
+	function isPlayerOnBlock(playerPosition, blockPosition, distance=.799) {
+		// returns true if you can stand on the block
 		const xDistance = Math.abs(playerPosition.x - blockPosition.x)
 		const zDistance = Math.abs(playerPosition.z - blockPosition.z)
 		const yDistance = Math.abs(playerPosition.y - blockPosition.y)
-		return !(xDistance > distance || zDistance > distance || yDistance > 2)
+		return !(xDistance > distance || zDistance > distance || yDistance > 1)
 	}
 
-	function isPointOnPath(point, distance=0.8) {
+	function isPointOnPath(point, distance=0.799) {
 		// returns true if a point is on the current path
-		if (!complexPathPoints) {
+		if (!complexPathPoints)
 			return false
-		}
 
 		if (complexPathPoints.length == 1)
 			return isPlayerOnBlock(point, complexPathPoints[0], distance)
@@ -48,8 +48,8 @@ function inject (bot) {
 	}
 
 	function getControlState() {
+		// we have to do this instead of just returning the control state since it uses custom get() methods
 		return {
-			// we have to do this instead of just returning the control state since it uses custom get() methods
 			forward: bot.controlState.forward,
 			back: bot.controlState.back,
 			left: bot.controlState.left,
@@ -61,6 +61,7 @@ function inject (bot) {
 	}
 
 	function simulateUntil(func, ticks=1, controlstate={}, returnState=false, returnInitial=true) {
+		// simulate the physics for the bot until func returns true for a number of ticks
 		const originalState = getControlState()
 		const simulationState = originalState
 		Object.assign(simulationState, controlstate)
@@ -68,11 +69,9 @@ function inject (bot) {
 		if (func(state) && returnInitial) return state
 		const world = { getBlock: (pos) => { return bot.blockAt(pos, false) } }
 
-		// simulate one tick before, without the current control state
-		// bot.physics.simulatePlayer(state, world)
-		// state.control = simulationState
 
 		for (let i = 0; i < ticks; i++) {
+			state.state = simulationState
 			bot.physics.simulatePlayer(state, world)
 			if (func(state)) return state
 		}
@@ -81,43 +80,49 @@ function inject (bot) {
 
 
 	function canSprintJump() {
+		// checks if the bot should sprint jump. this is also used for parkour
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
 		
 		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
 		let fallDistance = bot.entity.position.y - returnState.pos.y
-		if (jumpDistance <= 1 || fallDistance > 3) return false
-
+		if (jumpDistance <= 1 || fallDistance > 2) return false
+		
 		const isOnPath = isPointOnPath(returnState.pos)
 		if (!isOnPath) return false
 		
+		console.log('falling to', returnState.pos, 'from', bot.entity.position)
 		return true
 	}
 
 	function canWalkJump() {
+		// checks if the bot should walk jump. sprint jumps are used most of the time, but in case a sprint jump is too much itll do this instead
 		const isStateGood = (state) => {
+			if (!state) return false
 			const jumpDistance = bot.entity.position.distanceTo(state.pos)
 			let fallDistance = bot.entity.position.y - state.pos.y
-			if (jumpDistance <= 1 || fallDistance > 3) return false
+			if (jumpDistance <= 1 || fallDistance > 2) return false
 			const isOnPath = isPointOnPath(state.pos)
 			if (!isOnPath) return false
 			return true
 		}
-
+		
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: false, forward: true}, true, false)
 		const returnStateWithoutJump = simulateUntil(isStateGood, 20, {jump: false, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
-
+		
 		if (!isStateGood(returnState)) return false
-
+		
 		// if it can do just as good just from sprinting, then theres no point in jumping
 		if (isStateGood(returnStateWithoutJump)) return false
 		
+		console.log('hopping to', returnState.pos, 'from', bot.entity.position)
 		return true
 	}
 	
 
 	function shouldAutoJump() {
+		// checks if there's a block in front of the bot
 		let velocity = bot.entity.velocity.scaled(10).floored().min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
 		let blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 		let blockInFront = bot.blockAt(blockInFrontPos, false)
@@ -146,17 +151,22 @@ function inject (bot) {
 
 
 	async function straightPathTick() {
+		// straight line towards the current target, and jump if necessary
 		bot.setControlState('sprint', !walkingUntilGround)
 		bot.setControlState('forward', true)
-		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget) && !isPointOnPath(bot.entity.position)) {
+		if (!headLockedUntilGround) {
+			await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
+		}
+		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget)  ){// && !isPointOnPath(bot.entity.position)) {
 			if (bot.entity.onGround && shouldAutoJump()) {
 				bot.setControlState('jump', true)
+				console.log('autojump!')
 			} else if (bot.entity.onGround && canSprintJump()) {
 				headLockedUntilGround = true
 				bot.setControlState('jump', true)
 			} else if (bot.entity.onGround && canWalkJump()) {
 				bot.setControlState('sprint', false)
-				headLockedUntilGround = false
+				headLockedUntilGround = true
 				walkingUntilGround = true
 				bot.setControlState('jump', true)
 			} else {
@@ -165,11 +175,9 @@ function inject (bot) {
 					walkingUntilGround = false
 					bot.setControlState('jump', false)
 				}
-				if (!headLockedUntilGround) {
-					await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
-				}
 			}
 		} else {
+			console.log('arrived at', straightPathTarget)
 			straightPathTarget = null
 			headLockedUntilGround = false
 			walkingUntilGround = false
@@ -185,6 +193,7 @@ function inject (bot) {
 	}
 
 	function followTick() {
+		// updates the target position every followedAgo milliseconds
 		let entity = bot.entities[targetEntity.id]
 		if (!entity.onGround) return
 		let entityMoved = complexPathTarget === null || !entity.position.equals(complexPathTarget)
