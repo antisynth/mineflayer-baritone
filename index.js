@@ -19,16 +19,18 @@ function inject (bot) {
 	let currentPathNumber = 0
 	let currentCalculatedPathNumber = 0
 
-	function isPlayerOnBlock(playerPosition, blockPosition) {
+	function isPlayerOnBlock(playerPosition, blockPosition, onGround=false) {
 		// returns true if you can stand on the block
-
+		
 		if (!blockPosition) return false // theres no target position lmao
-
+		
+		blockPosition = blockPosition.offset(.5, 0, .5)
 		const xDistance = Math.abs(playerPosition.x - blockPosition.x)
 		const zDistance = Math.abs(playerPosition.z - blockPosition.z)
 		const yDistance = Math.abs(playerPosition.y - blockPosition.y)
 
-		return (xDistance < .7 && zDistance < .7 && yDistance < 2) || (xDistance < .8 && zDistance < .8 && yDistance < .1)
+		const onBlock = (xDistance < .7 && zDistance < .7 && yDistance < 2) || (onGround && xDistance < .8 && zDistance < .8 && yDistance < .1)
+		return onBlock
 	}
 
 	function isPointOnPath(point) {
@@ -160,7 +162,7 @@ function inject (bot) {
 		if (!headLockedUntilGround) {
 			await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
 		}
-		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget) && !isPointOnPath(bot.entity.position)) {
+		if (!isPlayerOnBlock(bot.entity.position, straightPathTarget, bot.entity.onGround) && !isPointOnPath(bot.entity.position)) {
 			if (bot.entity.onGround && shouldAutoJump()) {
 				bot.setControlState('jump', true)
 				// autojump!
