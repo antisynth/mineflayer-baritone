@@ -15,6 +15,7 @@ function inject (bot) {
 	let goingToPathTarget = null
 	let complexPathPoints = []
 	let headLockedUntilGround = false
+	let walkingUntilGround = false
 	let exactPath = false
 	let calculating = false
 	let lastFollowed = performance.now()
@@ -50,13 +51,13 @@ function inject (bot) {
 		const originalState = getControlState()
 		const simulationState = originalState
 		Object.assign(simulationState, controlstate)
-		const state = new PlayerState(bot, originalState)
+		const state = new PlayerState(bot, simulationState)
 		if (func(state) && returnInitial) return state
 		const world = { getBlock: (pos) => { return bot.blockAt(pos, false) } }
 
 		// simulate one tick before, without the current control state
-		bot.physics.simulatePlayer(state, world)
-		state.control = simulationState
+		// bot.physics.simulatePlayer(state, world)
+		// state.control = simulationState
 
 		for (let i = 0; i < ticks; i++) {
 			bot.physics.simulatePlayer(state, world)
@@ -66,13 +67,27 @@ function inject (bot) {
 	}
 
 	function canSprintJump() {
-		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, foward: true}, true, false)
+		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
 
 		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
 		let fallDistance = bot.entity.position.y - returnState.pos.y
 		if (jumpDistance <= 3 || fallDistance > 3) return false
+		
+		const isOnPath = checkLandsOnPath(returnState.pos)
+		if (!isOnPath) return false
+		
+		return true
+	}
 
+	function canWalkJump() {
+		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: false, forward: true}, true, false)
+		if (!returnState) return false // never landed on ground
+
+		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
+		let fallDistance = bot.entity.position.y - returnState.pos.y
+		if (jumpDistance <= 3 || fallDistance > 3) return false
+		
 		const isOnPath = checkLandsOnPath(returnState.pos)
 		if (!isOnPath) return false
 		
@@ -109,14 +124,19 @@ function inject (bot) {
 
 	async function straightPathTick() {
 		bot.setControlState('forward', true)
-		bot.setControlState('sprint', true)
+		bot.setControlState('sprint', !walkingUntilGround)
 		if (!atPosition(straightPathTarget, exactPath) && (exactPath || !checkLandsOnPath(bot.entity.position))) {
 			if (bot.entity.onGround)
 				headLockedUntilGround = false
+				walkingUntilGround = false
 			if (!headLockedUntilGround)
 				await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
 			if (bot.entity.onGround && (canSprintJump() || shouldAutoJump())) {
 				headLockedUntilGround = true
+				jump()
+			}
+			if (bot.entity.onGround && canWalkJump()) {
+				walkingUntilGround = true
 				jump()
 			}
 		} else {
