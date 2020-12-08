@@ -3,18 +3,21 @@ const AStar = require('./astar')
 const { PlayerState } = require('prismarine-physics')
 const { distanceFromLine } = require('./pointtoline')
 const { Vec3 } = require('vec3')
-
+const { performance } = require('perf_hooks')
 
 function inject (bot) {
 	bot.pathfinder = {}
 	bot.pathfinder.activeMovementFunction = null
 	bot.pathfinder.resolve = null
-	let pathEnd = null
-	let pathStart = null
+	let targetEntity = null
+	let straightPathTarget = null
+	let complexPathTarget = null
+	let goingToPathTarget = null
 	let complexPathPoints = []
 	let headLockedUntilGround = false
 	let exactPath = false
-	let jumpQueued
+	let calculating = false
+	let lastFollowed = performance.now()
 
 	function checkLandsOnPath(point, distance=0.8) {
 		if (!complexPathPoints) return false
@@ -62,10 +65,6 @@ function inject (bot) {
 		return returnState ? state : false
 	}
 
-	function isEdgeOfBlock() {
-		return !!simulateUntil((state) => {return !state.onGround}, 1)
-	}
-
 	function canSprintJump() {
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, foward: true}, true, false)
 		if (!returnState) return false // never landed on ground
@@ -103,29 +102,25 @@ function inject (bot) {
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
 	}
 
-	function jump(nextTick=false) {
-		if (!nextTick) {
-			bot.setControlState('jump', true)
-			bot.setControlState('jump', false)
-			jumpQueued = false
-		} else
-			jumpQueued = true
+	function jump() {
+		bot.setControlState('jump', true)
+		bot.setControlState('jump', false)
 	}
 
 	async function straightPathTick() {
 		bot.setControlState('forward', true)
 		bot.setControlState('sprint', true)
-		if (!atPosition(pathEnd, exactPath) && (exactPath || !checkLandsOnPath(bot.entity.position))) {
+		if (!atPosition(straightPathTarget, exactPath) && (exactPath || !checkLandsOnPath(bot.entity.position))) {
 			if (bot.entity.onGround)
 				headLockedUntilGround = false
 			if (!headLockedUntilGround)
-				await bot.lookAt(pathEnd.offset(.5, 1.625, .5), true)
+				await bot.lookAt(straightPathTarget.offset(.5, 1.625, .5), true)
 			if (bot.entity.onGround && (canSprintJump() || shouldAutoJump())) {
 				headLockedUntilGround = true
-				jump(false)
+				jump()
 			}
 		} else {
-			pathEnd = null
+			straightPathTarget = null
 			bot.pathfinder.activeMovementFunction = null
 			bot.clearControlStates()
 			bot.pathfinder.resolve()
@@ -133,8 +128,7 @@ function inject (bot) {
 	}
 
 	function straightPath(position, exact=false) {
-		pathStart = bot.entity.position
-		pathEnd = position
+		straightPathTarget = position
 		exactPath = exact
 		bot.pathfinder.activeMovementFunction = straightPathTick
 		return new Promise((resolve, reject) => {
@@ -142,7 +136,23 @@ function inject (bot) {
 		})
 	}
 
+	function followTick() {
+		let entity = bot.entities[targetEntity.id]
+		let entityMoved = complexPathTarget === null || !entity.position.equals(complexPathTarget)
+		let followedAgo = performance.now() - lastFollowed
+		if (!calculating && entityMoved && followedAgo > 500) {
+			lastFollowed = performance.now()
+			complexPath(entity.position.clone())
+		}
+	}
+
+	async function follow(entity) {
+		targetEntity = entity
+	}
+
 	async function complexPath(position) {
+		complexPathTarget = position
+		calculating = true
 		const result = await AStar({
 			start: bot.entity.position.floored(),
 			isEnd: (node) => {
@@ -156,9 +166,11 @@ function inject (bot) {
 			},
 			timeout: 1000
 		})
+		goingToPathTarget = position
+		calculating = false
 		complexPathPoints = result.path
-		console.log(result)
 		while (complexPathPoints.length > 0) {
+			if (goingToPathTarget != position) return console.log('looks like the path changed!')
 			const movement = complexPathPoints[0]
 			await straightPath(movement)
 			complexPathPoints.shift()
@@ -166,7 +178,6 @@ function inject (bot) {
 		// if (result.status == 'success')
 		// 	await straightPath(position, true) // do one more straight path just to make sure its at the exact position
 		complexPathPoints = null
-		console.log('arrived!')
 	}
 
 
@@ -174,11 +185,14 @@ function inject (bot) {
 		await complexPath(position)
 	}
 
+	bot.pathfinder.follow = async (entity) => {
+		await follow(entity)
+	}
+
 	function moveTick() {
-		if (jumpQueued)
-			jump()
 		if (bot.pathfinder.activeMovementFunction)
 			bot.pathfinder.activeMovementFunction()
+		if (targetEntity) followTick()
 	}
 
 	bot.on('physicTick', moveTick)

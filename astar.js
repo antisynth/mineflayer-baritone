@@ -4,42 +4,39 @@ module.exports = AStar;
 
 function AStar({ start, isEnd, neighbor, heuristic, timeout, hash }) {
 	if (timeout === undefined) timeout = Infinity;
-	var hash = hash || defaultHash;
+	hash = hash || defaultHash
 
-	var startNode = {
+	const startNode = {
 		data: start,
 		g: 0,
-		h: heuristic(start),
-	};
-	var bestNode = startNode;
-	startNode.f = startNode.h;
+		h: heuristic(start)
+	}
+	let bestNode = startNode
+	startNode.f = startNode.h
 	// leave .parent undefined
-	var closedDataSet = new Set();
-	var openHeap = new Heap();
-	var openDataMap = new Map();
-	openHeap.push(startNode);
-	openDataMap.set(hash(startNode.data), startNode);
+	const closedDataSet = new Set()
+	const openHeap = new Heap()
+	const openDataMap = new Map()
+	openHeap.push(startNode)
+	openDataMap.set(hash(startNode.data), startNode)
 	var startTime = new Date();
 
-	return new Promise((resolve, reject) => {
-		function pop() {
-			if (openHeap.size() === 0) {
-				return resolve({
-					status: "noPath",
-					cost: bestNode.g,
-					path: reconstructPath(bestNode),
-				})
-			}
+	return new Promise(async(resolve) => {
+		let iteration = 0
+		while (!openHeap.isEmpty()) {
+			iteration ++
+			if (iteration % 10 == 0)
+				// need to do this so the bot doesnt lag
+				await new Promise(r => setTimeout(r, 0))
 
-			if (new Date() - startTime > timeout) {
+			if (new Date() - startTime > timeout)
 				return resolve({
 					status: 'timeout',
 					cost: bestNode.g,
-					path: reconstructPath(bestNode),
-				});
+					path: reconstructPath(bestNode)
+				})
 
-			}
-			var node = openHeap.pop();
+				const node = openHeap.pop()
 			openDataMap.delete(hash(node.data));
 			if (isEnd(node.data)) {
 				// done
@@ -88,11 +85,13 @@ function AStar({ start, isEnd, neighbor, heuristic, timeout, hash }) {
 					openHeap.push(neighborNode)
 				}
 			}
-			process.nextTick(() => pop());
 		}
-
-		process.nextTick(() => pop());
-	});
+		return resolve({
+			status: 'noPath',
+			cost: bestNode.g,
+			path: reconstructPath(bestNode)
+		})
+	})
 
 }
 
