@@ -131,6 +131,7 @@ function inject (bot) {
 		let velocity = scaledVelocity.min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
 		let blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 		let blockInFront = bot.blockAt(blockInFrontPos, false)
+		if (blockInFront === null) return
 
 		if (blockInFront.boundingBox !== 'block') {
 			// x
@@ -201,6 +202,7 @@ function inject (bot) {
 	function followTick() {
 		// updates the target position every followedAgo milliseconds
 		let entity = bot.entities[targetEntity.id]
+		if (!entity) return
 		if (!entity.onGround) return
 		let entityMoved = complexPathTarget === null || !entity.position.equals(complexPathTarget)
 		let followedAgo = performance.now() - lastFollowed
