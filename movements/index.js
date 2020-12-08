@@ -49,12 +49,12 @@ class Move {
 	
 	right(amount=1, node=null) {
 		if (!node) node = this.origin
-		return node.offset(this.dir.z * -amount, 0, this.dir.x * -amount)
+		return node.offset(this.dir.z * -amount, 0, this.dir.x * amount)
 	}
 
 	left(amount=1, node=null) {
 		if (!node) node = this.origin
-		return node.offset(this.dir.z * amount, 0, this.dir.x * amount)
+		return node.offset(this.dir.z * amount, 0, this.dir.x * -amount)
 	}
 	
 	up(amount=1, node=null) {

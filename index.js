@@ -70,9 +70,6 @@ function inject (bot) {
 		return returnState ? state : false
 	}
 
-	function isEdgeOfBlock(ticks=1) {
-		return !!simulateUntil((state) => {return !state.onGround}, ticks)
-	}
 
 	function canSprintJump() {
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: true, forward: true}, true, false)
@@ -90,6 +87,7 @@ function inject (bot) {
 
 	function canWalkJump() {
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: false, forward: true}, true, false)
+		const returnStateWithoutJump = simulateUntil(state => state.onGround, 20, {jump: false, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
 
 		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
@@ -102,6 +100,16 @@ function inject (bot) {
 		const isOnPath = isPointOnPath(returnState.pos)
 		console.log('walk jump2', isOnPath)
 		if (!isOnPath) return false
+
+		if (returnStateWithoutJump) {
+			// if you couldve gotten there without jumping, then theres no point in walk jumping
+			const withoutJumpDistance = bot.entity.position.distanceTo(returnStateWithoutJump.pos)
+			let fallDistanceWithoutJump = bot.entity.position.y - returnStateWithoutJump.pos.y
+			if (withoutJumpDistance <= 1 || fallDistanceWithoutJump > 3) return true
+			const isOnPathWithoutJump = isPointOnPath(returnStateWithoutJump.pos)
+			if (!isOnPathWithoutJump) return true
+			return false
+		}
 		
 		return true
 	}
@@ -116,16 +124,29 @@ function inject (bot) {
 	}
 
 	function shouldAutoJump() {
-		let velocity = bot.entity.velocity.scaled(20).floored().min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
+		let velocity = bot.entity.velocity.scaled(10).floored().min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
 		let blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 		let blockInFront = bot.blockAt(blockInFrontPos, false)
+
+		if (blockInFront.boundingBox !== 'block') {
+			// x
+			velocity = bot.entity.velocity.scaled(10).floored().min(new Vec3(1, 0, 0)).max(new Vec3(-1, 0, 0))
+			blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
+			blockInFront = bot.blockAt(blockInFrontPos, false)	
+		}
+		if (blockInFront.boundingBox !== 'block') {
+			// z
+			velocity = bot.entity.velocity.scaled(10).floored().min(new Vec3(0, 0, 1)).max(new Vec3(0, 0, -1))
+			blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
+			blockInFront = bot.blockAt(blockInFrontPos, false)	
+		}
 		let blockInFront1 = bot.blockAt(blockInFrontPos.offset(0, 1, 0), false)
 		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
 
 		// if it's moving slowly and its touching a block, it should probably jump
-		// if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y == 0) {
-		// 	return true
-		// }
+		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y < 0.01) {
+			return true
+		}
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
 	}
 
