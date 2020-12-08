@@ -71,6 +71,22 @@ class MoveDiagonalUp extends Move {
 	}
 }
 
+class MoveDiagonalDown extends Move {
+	getNeighbors() {
+		let neighbors = []
+		let forwardNode = this.forward(1)
+		let landingNode = this.right(1, forwardNode)
+		for (let i = 0; i < 3; i++) {
+			landingNode = this.down(1, landingNode)
+			if (this.isStandable(landingNode)) break
+		}
+
+		if (this.isStandable(landingNode) && this.isWalkable(forwardNode))
+			neighbors.push(this.makeMovement(landingNode, 1.4))
+		return neighbors
+	}
+}
 
 
-registerMoves([ MoveForward, MoveDiagonal, MoveForwardUp, MoveForwardDown, MoveDiagonalUp ])
+
+registerMoves([ MoveForward, MoveDiagonal, MoveForwardUp, MoveForwardDown, MoveDiagonalUp, MoveDiagonalDown ])
