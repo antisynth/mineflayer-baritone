@@ -90,13 +90,11 @@ function inject (bot) {
 	}
 
 	function shouldAutoJump() {
-		let velocity = bot.entity.velocity.scaled(20).floored().min(new Vec3(1, 0, 1))
+		let velocity = bot.entity.velocity.scaled(20).floored().min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
 		let blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 		let blockInFront = bot.blockAt(blockInFrontPos, false)
 		let blockInFront1 = bot.blockAt(blockInFrontPos.offset(0, 1, 0), false)
 		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
-
-		console.log(bot.entity.position.floored(), blockInFrontPos.floored())
 
 		// if it's moving slowly and its touching a block, it should probably jump
 		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.y < .05) {
@@ -124,7 +122,7 @@ function inject (bot) {
 				await bot.lookAt(pathEnd.offset(.5, 1.625, .5), true)
 			if (bot.entity.onGround && (canSprintJump() || shouldAutoJump())) {
 				headLockedUntilGround = true
-				jump(!isEdgeOfBlock())
+				jump(false)
 			}
 		} else {
 			pathEnd = null
