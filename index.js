@@ -86,30 +86,23 @@ function inject (bot) {
 	}
 
 	function canWalkJump() {
+		const isStateGood = (state) => {
+			const jumpDistance = bot.entity.position.distanceTo(state.pos)
+			let fallDistance = bot.entity.position.y - state.pos.y
+			if (jumpDistance <= 1 || fallDistance > 3) return false
+			const isOnPath = isPointOnPath(state.pos)
+			if (!isOnPath) return false
+			return true
+		}
+
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: false, forward: true}, true, false)
-		const returnStateWithoutJump = simulateUntil(state => state.onGround, 20, {jump: false, sprint: true, forward: true}, true, false)
+		const returnStateWithoutJump = simulateUntil(isStateGood, 20, {jump: false, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
 
-		const jumpDistance = bot.entity.position.distanceTo(returnState.pos)
+		if (!isStateGood(returnState)) return false
 
-		console.log('walk jump1', returnState.pos)
-
-		let fallDistance = bot.entity.position.y - returnState.pos.y
-		if (jumpDistance <= 1 || fallDistance > 3) return false
-		
-		const isOnPath = isPointOnPath(returnState.pos)
-		console.log('walk jump2', isOnPath)
-		if (!isOnPath) return false
-
-		if (returnStateWithoutJump) {
-			// if you couldve gotten there without jumping, then theres no point in walk jumping
-			const withoutJumpDistance = bot.entity.position.distanceTo(returnStateWithoutJump.pos)
-			let fallDistanceWithoutJump = bot.entity.position.y - returnStateWithoutJump.pos.y
-			if (withoutJumpDistance <= 1 || fallDistanceWithoutJump > 3) return true
-			const isOnPathWithoutJump = isPointOnPath(returnStateWithoutJump.pos)
-			if (!isOnPathWithoutJump) return true
-			return false
-		}
+		// if it can do just as good just from sprinting, then theres no point in jumping
+		if (isStateGood(returnStateWithoutJump)) return false
 		
 		return true
 	}
@@ -173,7 +166,6 @@ function inject (bot) {
 				walkingUntilGround = true
 				jump()
 			} else {
-				console.log('current target:', straightPathTarget)
 				if (bot.entity.onGround) {
 					headLockedUntilGround = false
 					walkingUntilGround = false
