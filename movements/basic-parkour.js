@@ -140,9 +140,31 @@ class MoveForwardDownParkour2 extends Move {
 	}
 }
 
+class MoveDiagonalParkour extends Move {
+	getNeighbors() {
+		let neighbors = []
+		let landingNode = this.forward(2, this.right(2))
+
+		let isRightWalkable1 = this.isWalkable(this.up(1, this.right(1)))
+		let isForwardWalkable1 = this.isWalkable(this.up(1, this.forward(1)))
+		let isRightWalkable2 = this.isWalkable(this.up(1, this.forward(1, this.right(2))))
+		let isForwardWalkable2 = this.isWalkable(this.up(1, this.forward(2, this.right(1))))
+		if (
+			   (!isRightWalkable1 && !isForwardWalkable1)
+			|| (!isRightWalkable2 && !isForwardWalkable2)
+		) return []
+
+		if (this.isStandable(landingNode)) {
+			neighbors.push(this.makeMovement(landingNode, 3))
+		}
+		return neighbors
+	}
+}
+
 
 registerMoves([
 	MoveForwardParkour1, MoveForwardParkour2, MoveForwardParkour3,
-	MoveForwardUpParkour1, MoveForwardUpParkour2, //MoveForwardUpParkour3, this is way too hard to do consistently
-	MoveForwardDownParkour1, MoveForwardDownParkour2
+	MoveForwardUpParkour1, MoveForwardUpParkour2, //MoveForwardUpParkour3, this is too hard for the bot to do consistently
+	MoveForwardDownParkour1, MoveForwardDownParkour2,
+	MoveDiagonalParkour
 ])

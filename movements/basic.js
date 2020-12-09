@@ -14,14 +14,14 @@ class MoveForward extends Move {
 class MoveDiagonal extends Move {
 	getNeighbors() {
 		let neighbors = []
-		let diagonalRight = this.forward(1, this.right(1))
+		let landingNode = this.forward(1, this.right(1))
 
 		let isRightWalkable = this.isWalkable(this.up(1, this.right(1)))
 		let isForwardWalkable = this.isWalkable(this.up(1, this.forward(1)))
 		if (!isRightWalkable && !isForwardWalkable) return []
 
-		if (this.isStandable(diagonalRight)) {
-			neighbors.push(this.makeMovement(diagonalRight, 1.41))
+		if (this.isStandable(landingNode)) {
+			neighbors.push(this.makeMovement(landingNode, 1.41))
 		}
 		return neighbors
 	}
