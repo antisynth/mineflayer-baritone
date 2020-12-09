@@ -25,6 +25,12 @@ class Move {
 		if (!block) return false
 		return block.boundingBox === 'empty' && block.name !== 'water'
 	}
+
+	isWater(node) {
+		const block = this.world.getBlock(node)
+		if (!block) return false
+		return block.name == 'water'
+	}
 	
 	isWalkable(node) {
 		// 2 blocks of air
