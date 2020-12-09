@@ -299,7 +299,7 @@ function inject (bot) {
 			while (complexPathPoints.length > 0) {
 				const movement = complexPathPoints[0]
 				await straightPath({target: movement})
-				if (currentCalculatedPathNumber > pathNumber) return
+				if (currentCalculatedPathNumber > pathNumber || complexPathPoints === null) return
 				complexPathPoints.shift()
 			}
 		}
