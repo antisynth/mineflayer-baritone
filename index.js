@@ -11,6 +11,7 @@ function inject (bot) {
 	bot.pathfinder.nearbyTimeout = 250 // use this timeout if the bot is within 10 blocks
 	bot.pathfinder.maxTimeout = 1000
 	bot.pathfinder.straightLine = true
+	bot.pathfinder.complexPathOptions = {}
 
 
 	let targetEntity = null
@@ -179,7 +180,8 @@ function inject (bot) {
 			await bot.lookAt(target.offset(.5, 1.625, .5), true)
 		}
 		if (!isPlayerOnBlock(bot.entity.position, target, bot.entity.onGround) && !(allowSkippingPath && isPointOnPath(bot.entity.position))) {
-			if (bot.world.getBlock(bot.entity.position.offset(0, -1.5, 0).floored()).name == 'water') {
+			let blockBelow = bot.world.getBlock(bot.entity.position.offset(0, -1.5, 0).floored())
+			if (blockBelow && blockBelow.name == 'water') {
 				// in water
 				bot.setControlState('jump', true)
 			} else if (bot.entity.onGround && shouldAutoJump()) {
@@ -230,12 +232,13 @@ function inject (bot) {
 		let followedAgo = performance.now() - lastFollowed
 		if (!calculating && entityMoved && followedAgo > 100) {
 			lastFollowed = performance.now()
-			complexPath(entity.position.clone())
+			complexPath(entity.position.clone(), bot.pathfinder.complexPathOptions)
 		}
 	}
 
-	async function follow(entity) {
+	async function follow(entity, options={}) {
 		targetEntity = entity
+		bot.pathfinder.complexPathOptions = options
 	}
 
 	function convertPointToDirection(point) {
@@ -267,13 +270,21 @@ function inject (bot) {
 		return true
 	}
 
-	async function complexPath(pathPosition) {
+	async function complexPath(pathPosition, options={}) {
 		const position = pathPosition.clone()
 		let pathNumber = ++currentPathNumber
+		bot.pathfinder.complexPathOptions = options
 		complexPathTarget = position.clone()
 		calculating = true
 		continuousPath = true
 		const start = bot.entity.position.floored()
+
+		let distance = bot.entity.position.distanceTo(position)
+		if (bot.pathfinder.complexPathOptions.maxDistance && distance > bot.pathfinder.complexPathOptions.maxDistance) {}
+		else if (bot.pathfinder.complexPathOptions.minDistance && distance < bot.pathfinder.complexPathOptions.minDistance) {}
+		else if (bot.pathfinder.complexPathOptions.maxDistance || bot.pathfinder.complexPathOptions.minDistance) return
+
+
 		if (bot.pathfinder.straightLine && tryStraightPath(position)) {
 			bot.lookAt(position, true)
 			calculating = false
@@ -285,6 +296,10 @@ function inject (bot) {
 			const result = await AStar({
 				start: start,
 				isEnd: (node) => {
+					let distance = node.distanceTo(position)
+					if (bot.pathfinder.complexPathOptions.maxDistance && distance > bot.pathfinder.complexPathOptions.maxDistance) return false
+					else if (bot.pathfinder.complexPathOptions.minDistance && distance < bot.pathfinder.complexPathOptions.minDistance) return false
+					else if (bot.pathfinder.complexPathOptions.maxDistance || bot.pathfinder.complexPathOptions.minDistance) return true
 					return isPlayerOnBlock(node, position)
 				},
 				neighbor: (node) => {
@@ -312,12 +327,17 @@ function inject (bot) {
 	}
 
 
-	bot.pathfinder.goto = async (position) => {
-		await complexPath(position)
+	bot.pathfinder.goto = async (position, options={}) => {
+		await complexPath(position, options)
 	}
 
-	bot.pathfinder.follow = async (entity) => {
-		await follow(entity)
+	bot.pathfinder.follow = async (entity, options={}) => {
+		/*
+		Options:
+		- maxDistance
+		- minDistance
+		*/
+		await follow(entity, options)
 	}
 
 	function moveTick() {
