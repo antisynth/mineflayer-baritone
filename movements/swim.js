@@ -3,9 +3,9 @@ const { Move, registerMoves } = require('./')
 class MoveForwardSwim extends Move {
 	getNeighbors() {
 		let neighbors = []
-		let forwardNode = this.forward(1)
-		if (this.isWater(forwardNode))
-			neighbors.push(this.makeMovement(forwardNode, 1))
+		let landingNode = this.down(1, this.forward(1))
+		if (this.isWater(landingNode))
+			neighbors.push(this.makeMovement(this.up(1, landingNode), 2))
 		return neighbors
 	}
 }
@@ -13,14 +13,14 @@ class MoveForwardSwim extends Move {
 class MoveDiagonalSwim extends Move {
 	getNeighbors() {
 		let neighbors = []
-		let landingNode = this.forward(1, this.right(1))
+		let landingNode = this.down(1, this.forward(1, this.right(1)))
 
 		let isRightWalkable = this.isWater(this.up(1, this.right(1)))
 		let isForwardWalkable = this.isWater(this.up(1, this.forward(1)))
 		if (!isRightWalkable && !isForwardWalkable) return []
 
 		if (this.isWater(landingNode))
-			neighbors.push(this.makeMovement(landingNode, 1.41))
+			neighbors.push(this.makeMovement(this.up(1, landingNode), 2.82))
 		return neighbors
 	}
 }
@@ -28,10 +28,11 @@ class MoveDiagonalSwim extends Move {
 class MoveUpSwim extends Move {
 	getNeighbors() {
 		let neighbors = []
+		let position = this.up(0)
 		let landingNode = this.up(1)
 
-		if (this.isWater(landingNode))
-			neighbors.push(this.makeMovement(landingNode, 1))
+		if (this.isWater(position) && !this.isSolid(landingNode))
+			neighbors.push(this.makeMovement(landingNode, 1.5))
 		return neighbors
 	}
 }

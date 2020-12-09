@@ -179,10 +179,9 @@ function inject (bot) {
 			await bot.lookAt(target.offset(.5, 1.625, .5), true)
 		}
 		if (!isPlayerOnBlock(bot.entity.position, target, bot.entity.onGround) && !(allowSkippingPath && isPointOnPath(bot.entity.position))) {
-			if (bot.world.getBlock(target).water && bot.entity.position.xzDistanceTo(target) < .8 && target.y > bot.entity.position.y) {
-				// the target is directly up
+			if (bot.world.getBlock(bot.entity.position.offset(0, -1.5, 0).floored()).name == 'water') {
+				// in water
 				bot.setControlState('jump', true)
-				bot.setControlState('forward', false)
 			} else if (bot.entity.onGround && shouldAutoJump()) {
 				bot.setControlState('jump', true)
 				// autojump!
