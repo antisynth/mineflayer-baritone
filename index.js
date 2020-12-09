@@ -8,8 +8,9 @@ const { performance } = require('perf_hooks')
 function inject (bot) {
 	bot.pathfinder = {}
 
-	bot.nearbyTimeout = 250 // use this timeout if the bot is within 10 blocks
-	bot.maxTimeout = 1000
+	bot.pathfinder.nearbyTimeout = 250 // use this timeout if the bot is within 10 blocks
+	bot.pathfinder.maxTimeout = 1000
+	bot.pathfinder.straightLine = true
 
 
 	let targetEntity = null
@@ -270,14 +271,14 @@ function inject (bot) {
 		calculating = true
 		continuousPath = true
 		const start = bot.entity.position.floored()
-		if (tryStraightPath(position)) {
+		if (bot.pathfinder.straightLine && tryStraightPath(position)) {
 			bot.lookAt(position, true)
 			calculating = false
 			goingToPathTarget = position.clone()
 			complexPathPoints = [start, position]
 			await straightPath({target: position, skip: false})
 		} else {
-			const timeout = position.distanceTo(start) > 10 ? bot.maxTimeout : bot.nearbyTimeout
+			const timeout = position.distanceTo(start) > 10 ? bot.pathfinder.maxTimeout : bot.pathfinder.nearbyTimeout
 			const result = await AStar({
 				start: start,
 				isEnd: (node) => {

@@ -23,7 +23,7 @@ class Move {
 	isAir(node) {
 		const block = this.world.getBlock(node)
 		if (!block) return false
-		return block.boundingBox === 'empty'
+		return block.boundingBox === 'empty' && block.name !== 'water'
 	}
 	
 	isWalkable(node) {
@@ -31,8 +31,13 @@ class Move {
 		return this.isAir(node) && this.isAir(node.offset(0, 1, 0))
 	}
 	
-	isSolid(node) {
+	getBlock(node) {
 		const block = this.world.getBlock(node)
+		return block
+	}
+	
+	isSolid(node) {
+		const block = this.getBlock(node)
 		if (!block) return false
 		return block.boundingBox === 'block'
 	}
