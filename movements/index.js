@@ -37,6 +37,11 @@ class Move {
 		return this.isAir(node) && this.isAir(node.offset(0, 1, 0))
 	}
 	
+	isJumpable(node) {
+		// 3 blocks of air
+		return this.isAir(node) && this.isAir(node.offset(0, 1, 0)) && this.isAir(node.offset(0, 2, 0))
+	}
+	
 	getBlock(node) {
 		const block = this.world.getBlock(node)
 		return block
