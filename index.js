@@ -228,6 +228,12 @@ function inject (bot) {
 		let entity = bot.entities[targetEntity.id]
 		if (!entity) return
 		if (!entity.onGround) return
+
+		const distance = bot.entity.position.distanceTo(entity.position)
+		if (bot.pathfinder.complexPathOptions.maxDistance && distance > bot.pathfinder.complexPathOptions.maxDistance) {}
+		else if (bot.pathfinder.complexPathOptions.minDistance && distance < bot.pathfinder.complexPathOptions.minDistance) {}
+		else if (bot.pathfinder.complexPathOptions.maxDistance || bot.pathfinder.complexPathOptions.minDistance) return
+
 		let entityMoved = complexPathTarget === null || !entity.position.equals(complexPathTarget)
 		let followedAgo = performance.now() - lastFollowed
 		if (!calculating && entityMoved && followedAgo > 100) {
@@ -256,7 +262,8 @@ function inject (bot) {
 			if (!state) return false
 			if (state.airTicks > 15) return false // if youre falling for more than 15 ticks, then its probably too dangerous
 			if (state.isCollidedHorizontally) return false
-			if (isPlayerOnBlock(state.pos, target)) return true
+			let targetYFloored = new Vec3(target.x, Math.floor(target.y), target.z)
+			if (isPlayerOnBlock(state.pos, targetYFloored)) return true
 			return null
 		}
 
@@ -278,12 +285,6 @@ function inject (bot) {
 		calculating = true
 		continuousPath = true
 		const start = bot.entity.position.floored()
-
-		let distance = bot.entity.position.distanceTo(position)
-		if (bot.pathfinder.complexPathOptions.maxDistance && distance > bot.pathfinder.complexPathOptions.maxDistance) {}
-		else if (bot.pathfinder.complexPathOptions.minDistance && distance < bot.pathfinder.complexPathOptions.minDistance) {}
-		else if (bot.pathfinder.complexPathOptions.maxDistance || bot.pathfinder.complexPathOptions.minDistance) return
-
 
 		if (bot.pathfinder.straightLine && tryStraightPath(position)) {
 			bot.lookAt(position, true)
@@ -338,6 +339,12 @@ function inject (bot) {
 		- minDistance
 		*/
 		await follow(entity, options)
+	}
+
+	bot.pathfinder.stop = () => {
+		targetEntity = null
+		complexPathPoints = null
+		straightPathOptions = null
 	}
 
 	function moveTick() {
