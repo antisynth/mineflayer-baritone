@@ -3,14 +3,14 @@ const { performance } = require('perf_hooks')
 
 module.exports = AStar
 
-function AStar({ start, isEnd, neighbor, heuristic, timeout, hash }) {
+function AStar({ start, goal, neighbor, timeout, hash }) {
 	if (timeout === undefined) timeout = Infinity
 	hash = hash || defaultHash
 
 	const startNode = {
 		data: start,
 		g: 0,
-		h: heuristic(start)
+		h: goal.heuristic(start)
 	}
 	let bestNode = startNode
 	startNode.f = startNode.h
@@ -40,7 +40,7 @@ function AStar({ start, isEnd, neighbor, heuristic, timeout, hash }) {
 
 			const node = openHeap.pop()
 			openDataMap.delete(hash(node.data))
-			if (isEnd(node.data)) {
+			if (goal.isEnd(node.data)) {
 				// done
 				return resolve({
 					status: 'success',
@@ -75,7 +75,7 @@ function AStar({ start, isEnd, neighbor, heuristic, timeout, hash }) {
 				// update this neighbor with this node as its new parent
 				neighborNode.parent = node
 				neighborNode.g = gFromThisNode
-				neighborNode.h = heuristic(neighborData)
+				neighborNode.h = goal.heuristic(neighborData)
 				neighborNode.f = gFromThisNode + neighborNode.h
 				if (neighborNode.h < bestNode.h) bestNode = neighborNode
 				if (update) {
