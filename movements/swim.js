@@ -12,7 +12,7 @@ class MoveForwardSwim extends Move {
 class MoveForwardUpSwim extends Move {
 	addNeighbors(neighbors) {
 		let upNode = this.up(1)
-		let landingNode = this.up(1, this.forward(1))
+		let landingNode = this.forward(1).up(1)
 		if (this.isWalkable(upNode) && this.isStandable(landingNode))
 			neighbors.push(this.makeMovement(landingNode, 2.01))
 	}
@@ -21,7 +21,7 @@ class MoveForwardUpSwim extends Move {
 
 class MoveDiagonalSwim extends Move {
 	addNeighbors(neighbors) {
-		let landingNode = this.forward(1, this.right(1))
+		let landingNode = this.right(1).forward(1)
 
 		let isRightWalkable = this.isWater(this.right(1))
 		let isForwardWalkable = this.isWater(this.forward(1))

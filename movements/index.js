@@ -8,11 +8,71 @@ const cardinalDirections = [
 	{ x: 0, z: 1 } // west
 ]
 
+class DirectionalVec3 extends Vec3 {
+	constructor (x, y, z, direction) {
+		super()
+		this.x = x
+		this.y = y
+		this.z = z
+		this.dir = direction
+	}
+
+	forward(amount=1) {
+		return new DirectionalVec3(
+			this.x + this.dir.x * amount,
+			this.y,
+			this.z + this.dir.z * amount,
+			this.dir
+		)
+	}
+	
+	right(amount=1) {
+		return new DirectionalVec3(
+			this.x + this.dir.x * amount,
+			this.y,
+			this.z - this.dir.z * amount,
+			this.dir
+		)
+	}
+
+	left(amount=1) {
+		return new DirectionalVec3(
+			this.x - this.dir.x * amount,
+			this.y,
+			this.z + this.dir.z * amount,
+			this.dir
+		)
+	}
+	
+	up(amount=1) {
+		return new DirectionalVec3(
+			this.x,
+			this.y + amount,
+			this.z,
+			this.dir
+		)
+	}
+	
+	down(amount=1) {
+		return new DirectionalVec3(
+			this.x,
+			this.y - amount,
+			this.z,
+			this.dir
+		)
+	}
+
+	offset (dx, dy, dz) {
+		return new DirectionalVec3(this.x + dx, this.y + dy, this.z + dz, this.dir)
+	}
+}
+
+
 class Move {
 	constructor() {}
 	setValues(world, origin, dir) {
 		this.world = world
-		this.origin = origin
+		this.origin = new DirectionalVec3(origin.x, origin.y, origin.z, dir)
 		this.dir = dir
 	}
 	
@@ -66,7 +126,8 @@ class Move {
 	
 	right(amount=1, node=null) {
 		if (!node) node = this.origin
-		return node.offset(this.dir.z * -amount, 0, this.dir.x * amount)
+		let offset = node.offset(this.dir.z * -amount, 0, this.dir.x * amount)
+		return offset
 	}
 
 	left(amount=1, node=null) {

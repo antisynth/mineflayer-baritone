@@ -4,7 +4,7 @@ class MoveForwardParkour1 extends Move {
 	// 1 block jump
 	addNeighbors(neighbors) {
 		let landingNode = this.forward(2)
-		let spaceNode1 = this.up(1, this.forward(1))
+		let spaceNode1 = this.forward(1).up(1)
 		if (
 			   this.isWalkable(spaceNode1)
 			&& this.isStandable(landingNode)
@@ -17,8 +17,8 @@ class MoveForwardParkour2 extends Move {
 	// 2 block jump
 	addNeighbors(neighbors) {
 		let landingNode = this.forward(3)
-		let spaceNode1 = this.up(1, this.forward(1))
-		let spaceNode2 = this.up(1, this.forward(2))
+		let spaceNode1 = this.forward(1).up(1)
+		let spaceNode2 = this.forward(2).up(1)
 		if (
 			   this.isWalkable(spaceNode1)
 			&& this.isWalkable(spaceNode2)
@@ -48,9 +48,9 @@ class MoveForwardParkour3 extends Move {
 class MoveForwardUpParkour1 extends Move {
 	// 1 block jump going upward
 	addNeighbors(neighbors) {
-		let landingNode = this.up(1, this.forward(2))
+		let landingNode = this.forward(2).up(1)
 		let firstGap = this.forward(1)
-		let spaceNode1 = this.up(1, this.forward(1))
+		let spaceNode1 = this.forward(1).up(1)
 		if (
 			   this.isWalkable(firstGap)
 			&& this.isWalkable(spaceNode1)
@@ -63,10 +63,10 @@ class MoveForwardUpParkour1 extends Move {
 class MoveForwardUpParkour2 extends Move {
 	// 2 block jump going upward
 	addNeighbors(neighbors) {
-		let landingNode = this.up(1, this.forward(3))
+		let landingNode = this.forward(3).up(1)
 		let firstGap = this.forward(1)
-		let spaceNode1 = this.up(1, this.forward(1))
-		let spaceNode2 = this.up(1, this.forward(2))
+		let spaceNode1 = this.forward(1).up(1)
+		let spaceNode2 = this.forward(2).up(1)
 		if (
 			   this.isWalkable(firstGap)
 			&& this.isWalkable(spaceNode1)
@@ -80,10 +80,10 @@ class MoveForwardUpParkour2 extends Move {
 class MoveForwardUpParkour3 extends Move {
 	// 2 block jump going upward
 	addNeighbors(neighbors) {
-		let landingNode = this.up(1, this.forward(4))
-		let spaceNode1 = this.up(1, this.forward(1))
-		let spaceNode2 = this.up(1, this.forward(2))
-		let spaceNode3 = this.up(1, this.forward(3))
+		let landingNode = this.forward(4).up(1)
+		let spaceNode1 = this.forward(1).up(1)
+		let spaceNode2 = this.forward(2).up(1)
+		let spaceNode3 = this.forward(3).up(1)
 		if (
 			   this.isWalkable(spaceNode1)
 			&& this.isWalkable(spaceNode2)
@@ -97,8 +97,8 @@ class MoveForwardUpParkour3 extends Move {
 class MoveForwardDownParkour1 extends Move {
 	// 1 block jump going downward
 	addNeighbors(neighbors) {
-		let landingNode = this.down(1, this.forward(2))
-		let spaceNode1 = this.up(0, this.forward(1))
+		let landingNode = this.forward(2).down(1)
+		let spaceNode1 = this.forward(1)
 		if (
 			   this.isWalkable(spaceNode1)
 			&& !this.isStandable(spaceNode1)
@@ -112,9 +112,9 @@ class MoveForwardDownParkour1 extends Move {
 class MoveForwardDownParkour2 extends Move {
 	// 1 block jump going downward
 	addNeighbors(neighbors) {
-		let landingNode = this.down(1, this.forward(3))
-		let spaceNode1 = this.up(1, this.forward(1))
-		let spaceNode2 = this.up(1, this.forward(2))
+		let landingNode = this.forward(3).down(1)
+		let spaceNode1 = this.forward(1).up(1)
+		let spaceNode2 = this.forward(2).up(1)
 		if (
 			   this.isWalkable(spaceNode1)
 			&& this.isWalkable(spaceNode2)
@@ -126,12 +126,12 @@ class MoveForwardDownParkour2 extends Move {
 
 class MoveDiagonalParkour extends Move {
 	addNeighbors(neighbors) {
-		let landingNode = this.forward(2, this.right(2))
+		let landingNode = this.right(2).forward(2)
 
-		let isRightWalkable1 = this.isWalkable(this.up(1, this.right(1)))
-		let isForwardWalkable1 = this.isWalkable(this.up(1, this.forward(1)))
-		let isRightWalkable2 = this.isWalkable(this.up(1, this.forward(1, this.right(2))))
-		let isForwardWalkable2 = this.isWalkable(this.up(1, this.forward(2, this.right(1))))
+		let isRightWalkable1 = this.isWalkable(this.right(1).up(1))
+		let isForwardWalkable1 = this.isWalkable(this.forward(1).up(1))
+		let isRightWalkable2 = this.isWalkable(this.right(2).forward(1).up(1))
+		let isForwardWalkable2 = this.isWalkable(this.right(1).forward(2).up(1))
 		if (
 			   (!isRightWalkable1 && !isForwardWalkable1)
 			|| (!isRightWalkable2 && !isForwardWalkable2)
@@ -145,14 +145,14 @@ class MoveDiagonalParkour extends Move {
 
 class MoveDiagonalUpParkour extends Move {
 	addNeighbors(neighbors) {
-		let landingNode = this.up(1, this.forward(2, this.right(2)))
+		let landingNode = this.right(2).forward(2).up(1)
 
-		let spaceNode1 = this.up(1, this.forward(1, this.right(1)))
+		let spaceNode1 = this.right(1).forward(1).up(1)
 
-		let isRightWalkable1 = this.isWalkable(this.up(1, this.right(1)))
-		let isForwardWalkable1 = this.isWalkable(this.up(1, this.forward(1)))
-		let isRightWalkable2 = this.isWalkable(this.up(2, this.forward(1, this.right(2))))
-		let isForwardWalkable2 = this.isWalkable(this.up(2, this.forward(2, this.right(1))))
+		let isRightWalkable1 = this.isWalkable(this.right(1).up(1))
+		let isForwardWalkable1 = this.isWalkable(this.forward(1).up(1))
+		let isRightWalkable2 = this.isWalkable(this.right(2).forward(1).up(2))
+		let isForwardWalkable2 = this.isWalkable(this.right(1).forward(2).up(2))
 		if (
 			   (this.isWalkable(spaceNode1))
 			&& (isRightWalkable1 || isForwardWalkable1)
@@ -166,14 +166,14 @@ class MoveDiagonalUpParkour extends Move {
 
 class MoveDiagonalDownParkour extends Move {
 	addNeighbors(neighbors) {
-		let landingNode = this.down(1, this.forward(2, this.right(2)))
+		let landingNode = this.right(2).forward(2).down(1)
 
-		let spaceNode1 = this.down(1, this.forward(1, this.right(1)))
+		let spaceNode1 = this.right(1).forward(1).down(1)
 
-		let isRightWalkable1 = this.isWalkable(this.up(1, this.right(1)))
-		let isForwardWalkable1 = this.isWalkable(this.up(1, this.forward(1)))
-		let isRightWalkable2 = this.isJumpable(this.down(1, this.forward(1, this.right(2))))
-		let isForwardWalkable2 = this.isJumpable(this.down(1, this.forward(2, this.right(1))))
+		let isRightWalkable1 = this.isWalkable(this.right(1).up(1))
+		let isForwardWalkable1 = this.isWalkable(this.forward(1).up(1))
+		let isRightWalkable2 = this.isJumpable(this.right(2).forward(1).down(1))
+		let isForwardWalkable2 = this.isJumpable(this.right(1).forward(2).down(1))
 	
 		if (
 			   (this.isWalkable(spaceNode1))
