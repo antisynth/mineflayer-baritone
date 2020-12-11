@@ -205,10 +205,34 @@ class MoveDiagonalDownParkour extends Move {
 	}
 }
 
+class MoveSemiDiagonalParkour extends Move {
+	/*
+	-X
+	--
+	X-
+	(X is a solid block, - is air)
+	*/
+	addNeighbors(neighbors) {
+		let landingNode = this.right(1).forward(2)
+
+		let isRightWalkable1 = this.isJumpable(this.right(1).up(1))
+		let isForwardWalkable1 = this.isJumpable(this.forward(1).up(1))
+		if (
+			   (!isRightWalkable1 && !isForwardWalkable1)
+		) return []
+
+		if (this.isStandable(landingNode)) {
+			neighbors.push(this.makeMovement(landingNode, 3))
+		}
+	}
+}
+
+
 
 registerMoves([
 	MoveForwardParkour1, MoveForwardParkour2, MoveForwardParkour3,
-	MoveForwardUpParkour1, MoveForwardUpParkour2,
-	MoveForwardDownParkour1, MoveForwardDownParkour2,
-	MoveDiagonalParkour, MoveDiagonalUpParkour, MoveDiagonalDownParkour
+	MoveForwardUpParkour1, MoveForwardUpParkour2, MoveForwardUpParkour3,
+	MoveForwardDownParkour1, MoveForwardDownParkour2, MoveForwardDownParkour3,
+	MoveDiagonalParkour, MoveDiagonalUpParkour, MoveDiagonalDownParkour,
+	MoveSemiDiagonalParkour
 ])
