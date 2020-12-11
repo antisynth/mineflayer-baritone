@@ -78,16 +78,16 @@ class MoveForwardUpParkour2 extends Move {
 }
 
 class MoveForwardUpParkour3 extends Move {
-	// 2 block jump going upward
+	// 3 block jump going upward
 	addNeighbors(neighbors) {
 		let landingNode = this.forward(4).up(1)
 		let spaceNode1 = this.forward(1).up(1)
 		let spaceNode2 = this.forward(2).up(1)
 		let spaceNode3 = this.forward(3).up(1)
 		if (
-			   this.isWalkable(spaceNode1)
-			&& this.isWalkable(spaceNode2)
-			&& this.isWalkable(spaceNode3)
+			   this.isJumpable(spaceNode1)
+			&& this.isJumpable(spaceNode2)
+			&& this.isJumpable(spaceNode3)
 			&& this.isStandable(landingNode)
 		)
 			neighbors.push(this.makeMovement(landingNode, 5))
@@ -104,13 +104,13 @@ class MoveForwardDownParkour1 extends Move {
 			&& !this.isStandable(spaceNode1)
 			&& this.isStandable(landingNode)
 		) {
-			neighbors.push(this.makeMovement(landingNode, 1.9))
+			neighbors.push(this.makeMovement(landingNode, 1))
 		}
 	}
 }
 
 class MoveForwardDownParkour2 extends Move {
-	// 1 block jump going downward
+	// 2 block jump going downward
 	addNeighbors(neighbors) {
 		let landingNode = this.forward(3).down(1)
 		let spaceNode1 = this.forward(1).up(1)
@@ -120,7 +120,24 @@ class MoveForwardDownParkour2 extends Move {
 			&& this.isWalkable(spaceNode2)
 			&& this.isStandable(landingNode)
 		)
-			neighbors.push(this.makeMovement(landingNode, 2.1))
+			neighbors.push(this.makeMovement(landingNode, 2))
+	}
+}
+
+class MoveForwardDownParkour3 extends Move {
+	// 3 block jump going downward
+	addNeighbors(neighbors) {
+		let landingNode = this.forward(4).down(1)
+		let spaceNode1 = this.forward(1).up(1)
+		let spaceNode2 = this.forward(2).up(1)
+		let spaceNode3 = this.forward(3).up(1)
+		if (
+			   this.isJumpable(spaceNode1)
+			&& this.isJumpable(spaceNode2)
+			&& this.isJumpable(spaceNode3)
+			&& this.isStandable(landingNode)
+		)
+			neighbors.push(this.makeMovement(landingNode, 4))
 	}
 }
 

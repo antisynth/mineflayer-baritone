@@ -28,18 +28,18 @@ class DirectionalVec3 extends Vec3 {
 	
 	right(amount=1) {
 		return new DirectionalVec3(
-			this.x + this.dir.x * amount,
+			this.x - this.dir.z * amount,
 			this.y,
-			this.z - this.dir.z * amount,
+			this.z + this.dir.x * amount,
 			this.dir
 		)
 	}
 
 	left(amount=1) {
 		return new DirectionalVec3(
-			this.x - this.dir.x * amount,
+			this.x + this.dir.z * amount,
 			this.y,
-			this.z + this.dir.z * amount,
+			this.z - this.dir.x * amount,
 			this.dir
 		)
 	}
