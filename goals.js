@@ -19,9 +19,9 @@ class GoalBlock extends Goal {
 	constructor(x, y, z) {
 		super()
 		if (x && !y && !z)
-			this.pos = x
+			this.pos = x.offset(.5, 0, .5)
 		else
-			this.pos = new Vec3(x, y, z)
+			this.pos = new Vec3(x + .5, y, z + .5)
 	}
 	
 	heuristic(node) {

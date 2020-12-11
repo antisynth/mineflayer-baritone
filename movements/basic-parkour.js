@@ -9,7 +9,7 @@ class MoveForwardParkour1 extends Move {
 			   this.isWalkable(spaceNode1)
 			&& this.isStandable(landingNode)
 		)
-			neighbors.push(this.makeMovement(landingNode, 2))
+			neighbors.push(this.makeMovement(landingNode, 1.5))
 	}
 }
 
@@ -24,7 +24,7 @@ class MoveForwardParkour2 extends Move {
 			&& this.isWalkable(spaceNode2)
 			&& this.isStandable(landingNode)
 		)
-			neighbors.push(this.makeMovement(landingNode, 3))
+			neighbors.push(this.makeMovement(landingNode, 2.5))
 	}
 }
 
@@ -56,7 +56,7 @@ class MoveForwardUpParkour1 extends Move {
 			&& this.isWalkable(spaceNode1)
 			&& this.isStandable(landingNode)
 		)
-			neighbors.push(this.makeMovement(landingNode, 2))
+			neighbors.push(this.makeMovement(landingNode, 1.5))
 	}
 }
 

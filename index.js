@@ -165,9 +165,9 @@ function inject (bot) {
 
 		// if it's moving slowly and its touching a block, it should probably jump
 		const { x: velX, y: velY, z: velZ } = bot.entity.velocity
-		// if (bot.entity.isCollidedHorizontally && Math.abs(velX) + Math.abs(velZ) < 0.01 && (Math.abs(velY) < .1)) {
-		// 	return true
-		// }
+		if (bot.entity.isCollidedHorizontally && Math.abs(velX) + Math.abs(velZ) < 0.01 && (Math.abs(velY) < .1)) {
+			return true
+		}
 		return blockInFront.boundingBox === 'block' && blockInFront1.boundingBox === 'empty' && blockInFront2.boundingBox === 'empty'
 	}
 
