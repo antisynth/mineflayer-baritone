@@ -177,6 +177,7 @@ function inject (bot) {
 
 		// if it's moving slowly and its touching a block, it should probably jump
 		const { x: velX, y: velY, z: velZ } = bot.entity.velocity
+		console.log(Math.abs(velX) + Math.abs(velZ))
 		if (bot.entity.isCollidedHorizontally && Math.abs(velX) + Math.abs(velZ) < 0.01 && (Math.abs(velY) < .1)) {
 			return true
 		}
@@ -370,6 +371,12 @@ function inject (bot) {
 				await straightPath({target: movement})
 				if (currentCalculatedPathNumber > pathNumber || complexPathPoints === null) return
 				complexPathPoints.shift()
+			}
+			if (result.status == 'timeout') {
+				// if it times out, recalculate once we reach the end
+				complexPathPoints = null
+				bot.clearControlStates()
+				return await complexPath(pathPosition, options={})
 			}
 		}
 		complexPathPoints = null
