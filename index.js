@@ -198,8 +198,9 @@ function inject (bot) {
 			await bot.lookAt(target.offset(.5, 1.625, .5), true)
 		}
 		if (!isPlayerOnBlock(bot.entity.position, target, bot.entity.onGround) && !(allowSkippingPath && isPointOnPath(bot.entity.position))) {
-			let blockBelow = bot.world.getBlock(bot.entity.position.offset(0, -1.5, 0).floored())
-			if (blockBelow && blockBelow.name == 'water') {
+			let blockInside = bot.world.getBlock(bot.entity.position.offset(0, 0, 0).floored())
+			let blockInside2 = bot.world.getBlock(bot.entity.position.offset(0, 0, 0).floored())
+			if (blockInside && (blockInside.name == 'water' || blockInside2.name == 'water') && target.y >= bot.entity.position.y - .5) {
 				// in water
 				bot.setControlState('jump', true)
 				bot.setControlState('sprint', false)
