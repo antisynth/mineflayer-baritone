@@ -174,7 +174,7 @@ function inject (bot) {
 
 		// if it's moving slowly and its touching a block, it should probably jump
 		const { x: velX, y: velY, z: velZ } = bot.entity.velocity
-		if (bot.entity.isCollidedHorizontally && Math.abs(velX) + Math.abs(velZ) < 0.01 && (velY > .1 || velY < -.1)) {
+		if (bot.entity.isCollidedHorizontally && Math.abs(velX) + Math.abs(velZ) < 0.01 && (Math.abs(velY) < .1)) {
 			return true
 		}
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
@@ -295,7 +295,7 @@ function inject (bot) {
 	}
 
 	async function complexPath(pathPosition, options={}) {
-		const position = pathPosition.clone()
+		let position = pathPosition.clone()
 		let pathNumber = ++currentPathNumber
 		bot.pathfinder.complexPathOptions = options
 		complexPathTarget = position.clone()
@@ -303,7 +303,15 @@ function inject (bot) {
 		continuousPath = true
 		const start = bot.entity.position.floored()
 
-		if (false && bot.pathfinder.straightLine && tryStraightPath(position)) {
+		console.log('.')
+
+		// put the target position on the ground (if its with in 2 blocks)
+		if (bot.world.getBlock(position.offset(0, -1, 0)).boundingBox == 'empty')
+			if (bot.world.getBlock(position.offset(0, -2, 0)).boundingBox == 'empty')
+				position.translate(0, -2, 0)
+			else position.translate(0, -1, 0)
+
+		if (bot.pathfinder.straightLine && tryStraightPath(position)) {
 			bot.lookAt(position, true)
 			calculating = false
 			goingToPathTarget = position.clone()
@@ -311,8 +319,8 @@ function inject (bot) {
 			await straightPath({target: position, skip: false})
 		} else {
 			const timeout = bot.pathfinder.timeout
-			let summedTimes = 0
-			for (let i = 0;i<100;i++) {
+			// let summedTimes = 0
+			// for (let i = 0;i<100;i++) {
 				let calculateStart = performance.now()
 				const result = await AStar({
 					start: start,
@@ -332,11 +340,13 @@ function inject (bot) {
 					timeout
 				})
 				let calculateEnd = performance.now()
-				summedTimes += calculateEnd - calculateStart
+				// summedTimes += calculateEnd - calculateStart
 				console.log(calculateEnd - calculateStart)
-			}
-			console.log(summedTimes/100, 'average')
-			return
+				if (calculateEnd - calculateStart > 900)
+					console.log(position)
+			// }
+			// console.log(summedTimes/100, 'average')
+			// return
 			if (currentCalculatedPathNumber > pathNumber) return
 			else currentCalculatedPathNumber = pathNumber
 			goingToPathTarget = position.clone()
