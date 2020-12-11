@@ -34,12 +34,12 @@ function inject (bot) {
 		const zDistance = Math.abs(playerPosition.z - blockPosition.z)
 		const yDistance = Math.abs(playerPosition.y - blockPosition.y)
 
-		const onBlock = (xDistance < .7 && zDistance < .7 && yDistance < 2) || (onGround && xDistance < .8 && zDistance < .8 && yDistance == 0)
+		const onBlock = (xDistance < .7 && zDistance < .7 && yDistance == 1) || (onGround && xDistance < .8 && zDistance < .8 && yDistance == 0)
 		return onBlock
 	}
 
 	function willBeOnGround(ticks=1) {
-		return !!simulateUntil((state) => state.onGround, ticks)
+		return simulateUntil((state) => state.onGround, ticks, {}, false, true)
 	}	
 
 	function isPointOnPath(point, { max=null }={}) {
@@ -48,19 +48,20 @@ function inject (bot) {
 			return false
 
 		if (complexPathPoints.length == 1)
-			return isPlayerOnBlock(point, complexPathPoints[0])
+			return isPlayerOnBlock(point, complexPathPoints[0], true)
 		let pathIndex
 		for (pathIndex = 1; pathIndex < Math.min(complexPathPoints.length, max ?? 100); ++pathIndex) {
 			let segmentStart = complexPathPoints[pathIndex - 1]
 			let segmentEnd = complexPathPoints[pathIndex]
 
 			if (isPlayerOnBlock(point, segmentStart) || isPlayerOnBlock(point, segmentEnd)) {
+				console.log('on segment', point)
 				return true
 			}
 
 			let calculatedDistance = distanceFromLine(segmentStart, segmentEnd, point.offset(-.5, 0, -.5))
 			if (calculatedDistance < .7 && (bot.entity.onGround || willBeOnGround())) {
-				console.log('pog champ', segmentEnd)
+				console.log('pog champ', segmentStart)
 				return true
 			}
 		}
@@ -106,6 +107,10 @@ function inject (bot) {
 		return returnState ? state : false
 	}
 
+	function nextTickState() {
+		return simulateUntil(() => false, 1, {}, true)
+	}
+
 
 	function canSprintJump() {
 		// checks if the bot should sprint jump. this is also used for parkour
@@ -129,19 +134,20 @@ function inject (bot) {
 			const jumpDistance = bot.entity.position.distanceTo(state.pos)
 			let fallDistance = bot.entity.position.y - state.pos.y
 			if (jumpDistance <= 1 || fallDistance > 2) return false
-			const isOnPath = isPointOnPath(state.pos, {max: 5})
+			const isOnPath = isPointOnPath(state.pos)
+			console.log('isOnPath', state.pos, isOnPath)
 			if (!isOnPath) return false
 			return true
 		}
 		
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: false, forward: true}, true, false)
-		const returnStateWithoutJump = simulateUntil(isStateGood, 20, {jump: false, sprint: true, forward: true}, true, false)
+		// const returnStateWithoutJump = simulateUntil(isStateGood, 20, {jump: false, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
 		
 		if (!isStateGood(returnState)) return false
 		
 		// if it can do just as good just from sprinting, then theres no point in jumping
-		if (isStateGood(returnStateWithoutJump)) return false
+		// if (isStateGood(returnStateWithoutJump)) return false
 		
 		console.log('hopping to', returnState.pos, 'from', bot.entity.position)
 		return true
@@ -172,7 +178,9 @@ function inject (bot) {
 		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
 
 		// if it's moving slowly and its touching a block, it should probably jump
-		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.z < 0.01) {
+		const { x: velX, y: velY, z: velZ } = bot.entity.velocity
+		if (bot.entity.isCollidedHorizontally && velX + velZ < 0.01 && (velY > .1 || velY < -.1)) {
+			console.log('hm', bot.entity.velocity)
 			return true
 		}
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
@@ -181,6 +189,7 @@ function inject (bot) {
 
 	async function straightPathTick() {
 		// straight line towards the current target, and jump if necessary
+		if (!straightPathOptions) return false
 		bot.setControlState('sprint', !walkingUntilGround)
 		bot.setControlState('forward', true)
 		const target = straightPathOptions.target
@@ -224,7 +233,9 @@ function inject (bot) {
 			straightPathOptions = null
 			headLockedUntilGround = false
 			walkingUntilGround = false
+			return true
 		}
+		return false
 	}
 
 	function straightPath({ target, skip }) {
@@ -362,9 +373,9 @@ function inject (bot) {
 		straightPathOptions = null
 	}
 
-	function moveTick() {
+	async function moveTick() {
 		if (targetEntity) followTick()
-		if (straightPathOptions !== null) straightPathTick()
+		if (straightPathOptions !== null) if (await straightPathTick()) straightPathTick()
 	}
 
 	bot.on('physicTick', moveTick)
