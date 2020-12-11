@@ -1,16 +1,19 @@
 const { Move, registerMoves } = require('./')
 
 class MoveForward extends Move {
-	addNeighbors(neighbors) {
+	getNeighbors() {
+		let neighbors = []
 		let forwardNode = this.forward(1)
 		if (this.isStandable(forwardNode))
 			neighbors.push(this.makeMovement(forwardNode, 1.01))
+		return neighbors
 	}
 }
 
 
 class MoveDiagonal extends Move {
-	addNeighbors(neighbors) {
+	getNeighbors() {
+		let neighbors = []
 		let landingNode = this.forward(1, this.right(1))
 
 		let isRightWalkable = this.isWalkable(this.up(1, this.right(1)))
@@ -20,21 +23,25 @@ class MoveDiagonal extends Move {
 		if (this.isStandable(landingNode)) {
 			neighbors.push(this.makeMovement(landingNode, 1.41))
 		}
+		return neighbors
 	}
 }
 
 class MoveForwardUp extends Move {
-	addNeighbors(neighbors) {
+	getNeighbors() {
+		let neighbors = []
 		let upNode = this.up(1)
 		let landingNode = this.forward(1, this.up(1))
 
 		if (this.isWalkable(upNode) && this.isStandable(landingNode))
 			neighbors.push(this.makeMovement(landingNode, 1.5))
+		return neighbors
 	}
 }
 
 class MoveForwardDown extends Move {
-	addNeighbors(neighbors) {
+	getNeighbors() {
+		let neighbors = []
 		let forwardNode = this.forward(1)
 		let landingNode = forwardNode
 		for (let i = 0; i < 3; i++) {
@@ -44,11 +51,13 @@ class MoveForwardDown extends Move {
 
 		if (this.isStandable(landingNode) && this.isWalkable(forwardNode))
 			neighbors.push(this.makeMovement(landingNode, 1.4))
+		return neighbors
 	}
 }
 
 class MoveDiagonalUp extends Move {
-	addNeighbors(neighbors) {
+	getNeighbors() {
+		let neighbors = []
 		let upNode = this.up(1)
 		let landingNode = this.right(1, this.forward(1, this.up(1)))
 
@@ -58,11 +67,13 @@ class MoveDiagonalUp extends Move {
 
 		if (this.isWalkable(upNode) && this.isStandable(landingNode))
 			neighbors.push(this.makeMovement(landingNode, 1.5))
+		return neighbors
 	}
 }
 
 class MoveDiagonalDown extends Move {
-	addNeighbors(neighbors) {
+	getNeighbors() {
+		let neighbors = []
 		let forwardNode = this.forward(1)
 		let landingNode = this.right(1, forwardNode)
 		for (let i = 0; i < 3; i++) {
@@ -72,12 +83,10 @@ class MoveDiagonalDown extends Move {
 
 		if (this.isStandable(landingNode) && this.isWalkable(forwardNode))
 			neighbors.push(this.makeMovement(landingNode, 1.4))
+		return neighbors
 	}
 }
 
 
 
-registerMoves([
-	MoveForward, MoveForwardUp, MoveForwardDown,
-	MoveDiagonal, MoveDiagonalUp, MoveDiagonalDown
-])
+registerMoves([ MoveForward, MoveDiagonal, MoveForwardUp, MoveForwardDown, MoveDiagonalUp, MoveDiagonalDown ])
