@@ -37,13 +37,13 @@ class MoveForwardParkour3 extends Move {
 	getNeighbors() {
 		let neighbors = []
 		let landingNode = this.forward(4)
-		let spaceNode1 = this.up(1, this.forward(1))
-		let spaceNode2 = this.up(1, this.forward(2))
-		let spaceNode3 = this.up(1, this.forward(3))
+		let spaceNode1 = this.forward(1)
+		let spaceNode2 = this.forward(2)
+		let spaceNode3 = this.forward(3)
 		if (
-			   this.isWalkable(spaceNode1)
-			&& this.isWalkable(spaceNode2)
-			&& this.isWalkable(spaceNode3)
+			   this.isJumpable(spaceNode1)
+			&& this.isJumpable(spaceNode2)
+			&& this.isJumpable(spaceNode3)
 			&& this.isStandable(landingNode)
 		)
 			neighbors.push(this.makeMovement(landingNode, 4))

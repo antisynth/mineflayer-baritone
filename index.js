@@ -34,7 +34,7 @@ function inject (bot) {
 		const zDistance = Math.abs(playerPosition.z - blockPosition.z)
 		const yDistance = Math.abs(playerPosition.y - blockPosition.y)
 
-		const onBlock = (xDistance < .7 && zDistance < .7 && yDistance == 1) || (onGround && xDistance < .8 && zDistance < .8 && yDistance == 0)
+		const onBlock = (xDistance < .7 && zDistance < .7 && yDistance < 1) || (onGround && xDistance < .8 && zDistance < .8 && yDistance == 0)
 		return onBlock
 	}
 
@@ -48,7 +48,7 @@ function inject (bot) {
 			return false
 
 		if (complexPathPoints.length == 1)
-			return isPlayerOnBlock(point, complexPathPoints[0], true)
+			return isPlayerOnBlock(point, complexPathPoints[0])
 		let pathIndex
 		for (pathIndex = 1; pathIndex < Math.min(complexPathPoints.length, max ?? 100); ++pathIndex) {
 			let segmentStart = complexPathPoints[pathIndex - 1]
@@ -134,8 +134,8 @@ function inject (bot) {
 			const jumpDistance = bot.entity.position.distanceTo(state.pos)
 			let fallDistance = bot.entity.position.y - state.pos.y
 			if (jumpDistance <= 1 || fallDistance > 2) return false
-			const isOnPath = isPointOnPath(state.pos)
-			console.log('isOnPath', state.pos, isOnPath)
+			const isOnPath = isPointOnPath(state.pos, { max: 10 })
+			console.log('isOnPath', state.pos, isOnPath, complexPathPoints)
 			if (!isOnPath) return false
 			return true
 		}
