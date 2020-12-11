@@ -55,13 +55,11 @@ function inject (bot) {
 			let segmentEnd = complexPathPoints[pathIndex]
 
 			if (isPlayerOnBlock(point, segmentStart) || isPlayerOnBlock(point, segmentEnd)) {
-				console.log('on segment', point)
 				return true
 			}
 
 			let calculatedDistance = distanceFromLine(segmentStart, segmentEnd, point.offset(-.5, 0, -.5))
 			if (calculatedDistance < .7 && (bot.entity.onGround || willBeOnGround())) {
-				console.log('pog champ', segmentStart)
 				return true
 			}
 		}
@@ -123,7 +121,6 @@ function inject (bot) {
 		
 		const isOnPath = isPointOnPath(returnState.pos)
 		if (!isOnPath) return false
-		console.log('landing on', returnState.pos, 'from', bot.entity.position)
 		return true
 	}
 
@@ -135,21 +132,19 @@ function inject (bot) {
 			let fallDistance = bot.entity.position.y - state.pos.y
 			if (jumpDistance <= 1 || fallDistance > 2) return false
 			const isOnPath = isPointOnPath(state.pos, { max: 10 })
-			console.log('isOnPath', state.pos, isOnPath, complexPathPoints)
 			if (!isOnPath) return false
 			return true
 		}
 		
 		const returnState = simulateUntil(state => state.onGround, 20, {jump: true, sprint: false, forward: true}, true, false)
-		// const returnStateWithoutJump = simulateUntil(isStateGood, 20, {jump: false, sprint: true, forward: true}, true, false)
+		const returnStateWithoutJump = simulateUntil(isStateGood, 20, {jump: false, sprint: true, forward: true}, true, false)
 		if (!returnState) return false // never landed on ground
 		
 		if (!isStateGood(returnState)) return false
 		
 		// if it can do just as good just from sprinting, then theres no point in jumping
-		// if (isStateGood(returnStateWithoutJump)) return false
+		if (isStateGood(returnStateWithoutJump)) return false
 		
-		console.log('hopping to', returnState.pos, 'from', bot.entity.position)
 		return true
 	}
 	
@@ -180,7 +175,6 @@ function inject (bot) {
 		// if it's moving slowly and its touching a block, it should probably jump
 		const { x: velX, y: velY, z: velZ } = bot.entity.velocity
 		if (bot.entity.isCollidedHorizontally && velX + velZ < 0.01 && (velY > .1 || velY < -.1)) {
-			console.log('hm', bot.entity.velocity)
 			return true
 		}
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
@@ -206,18 +200,15 @@ function inject (bot) {
 				bot.setControlState('sprint', false)
 			} else if (bot.entity.onGround && shouldAutoJump()) {
 				bot.setControlState('jump', true)
-				console.log('autojump!')
 				// autojump!
 			} else if (bot.entity.onGround && canSprintJump()) {
 				headLockedUntilGround = true
 				bot.setControlState('jump', true)
-				console.log('sprint jump!')
 			} else if (bot.entity.onGround && canWalkJump()) {
 				bot.setControlState('sprint', false)
 				headLockedUntilGround = true
 				walkingUntilGround = true
 				bot.setControlState('jump', true)
-				console.log('hop!')
 			} else {
 				if (bot.entity.onGround) {
 					headLockedUntilGround = false
@@ -347,7 +338,6 @@ function inject (bot) {
 				await straightPath({target: movement})
 				if (currentCalculatedPathNumber > pathNumber || complexPathPoints === null) return
 				complexPathPoints.shift()
-				console.log(movement)
 			}
 		}
 		complexPathPoints = null

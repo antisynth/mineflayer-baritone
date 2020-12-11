@@ -54,7 +54,6 @@ class MoveUpSwim extends Move {
 class MoveDownSwim extends Move {
 	getNeighbors() {
 		let neighbors = []
-		let position = this.up(0)
 		let landingNode = this.down(1)
 
 		if (this.isWater(landingNode))
