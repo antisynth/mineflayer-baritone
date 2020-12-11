@@ -37,13 +37,13 @@ class MoveForwardParkour3 extends Move {
 	getNeighbors() {
 		let neighbors = []
 		let landingNode = this.forward(4)
-		let spaceNode1 = this.up(1, this.forward(1))
-		let spaceNode2 = this.up(1, this.forward(2))
-		let spaceNode3 = this.up(1, this.forward(3))
+		let spaceNode1 = this.forward(1)
+		let spaceNode2 = this.forward(2)
+		let spaceNode3 = this.forward(3)
 		if (
-			   this.isWalkable(spaceNode1)
-			&& this.isWalkable(spaceNode2)
-			&& this.isWalkable(spaceNode3)
+			   this.isJumpable(spaceNode1)
+			&& this.isJumpable(spaceNode2)
+			&& this.isJumpable(spaceNode3)
 			&& this.isStandable(landingNode)
 		)
 			neighbors.push(this.makeMovement(landingNode, 4))
@@ -161,10 +161,59 @@ class MoveDiagonalParkour extends Move {
 	}
 }
 
+class MoveDiagonalUpParkour extends Move {
+	getNeighbors() {
+		let neighbors = []
+		let landingNode = this.up(1, this.forward(2, this.right(2)))
+
+		let spaceNode1 = this.up(1, this.forward(1, this.right(1)))
+
+		let isRightWalkable1 = this.isWalkable(this.up(1, this.right(1)))
+		let isForwardWalkable1 = this.isWalkable(this.up(1, this.forward(1)))
+		let isRightWalkable2 = this.isWalkable(this.up(2, this.forward(1, this.right(2))))
+		let isForwardWalkable2 = this.isWalkable(this.up(2, this.forward(2, this.right(1))))
+		if (
+			   (this.isWalkable(spaceNode1))
+			&& (isRightWalkable1 || isForwardWalkable1)
+			&& (isRightWalkable2 || isForwardWalkable2)
+			&& this.isStandable(landingNode)
+		) {
+			neighbors.push(this.makeMovement(landingNode, 3))
+		}
+		return neighbors	
+	}
+}
+
+class MoveDiagonalDownParkour extends Move {
+	getNeighbors() {
+		let neighbors = []
+		let landingNode = this.down(1, this.forward(2, this.right(2)))
+
+		let spaceNode1 = this.down(1, this.forward(1, this.right(1)))
+
+		let isRightWalkable1 = this.isWalkable(this.up(1, this.right(1)))
+		let isForwardWalkable1 = this.isWalkable(this.up(1, this.forward(1)))
+		let isRightWalkable2 = this.isJumpable(this.down(1, this.forward(1, this.right(2))))
+		let isForwardWalkable2 = this.isJumpable(this.down(1, this.forward(2, this.right(1))))
+	
+		if (
+			   (this.isWalkable(spaceNode1))
+			&& (
+				   (isRightWalkable1 && isRightWalkable2)
+				|| (isForwardWalkable1 && isForwardWalkable2)
+			)
+			&& this.isStandable(landingNode)
+		) {
+			neighbors.push(this.makeMovement(landingNode, 2))
+		}
+		return neighbors	
+	}
+}
+
 
 registerMoves([
 	MoveForwardParkour1, MoveForwardParkour2, MoveForwardParkour3,
 	MoveForwardUpParkour1, MoveForwardUpParkour2, //MoveForwardUpParkour3, this is too hard for the bot to do consistently
 	MoveForwardDownParkour1, MoveForwardDownParkour2,
-	MoveDiagonalParkour
+	MoveDiagonalParkour, MoveDiagonalUpParkour, MoveDiagonalDownParkour
 ])

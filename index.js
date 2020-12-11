@@ -8,8 +8,7 @@ const { performance } = require('perf_hooks')
 function inject (bot) {
 	bot.pathfinder = {}
 
-	bot.pathfinder.nearbyTimeout = 250 // use this timeout if the bot is within 10 blocks
-	bot.pathfinder.maxTimeout = 1000
+	bot.pathfinder.timeout = 1000
 	bot.pathfinder.straightLine = true
 	bot.pathfinder.complexPathOptions = {}
 
@@ -35,11 +34,15 @@ function inject (bot) {
 		const zDistance = Math.abs(playerPosition.z - blockPosition.z)
 		const yDistance = Math.abs(playerPosition.y - blockPosition.y)
 
-		const onBlock = (xDistance < .7 && zDistance < .7 && yDistance < 2) || (onGround && xDistance < .8 && zDistance < .8 && yDistance < .1)
+		const onBlock = (xDistance < .7 && zDistance < .7 && yDistance < 1) || (onGround && xDistance < .8 && zDistance < .8 && yDistance == 0)
 		return onBlock
 	}
 
-	function isPointOnPath(point) {
+	function willBeOnGround(ticks=1) {
+		return simulateUntil((state) => state.onGround, ticks, {}, false, true)
+	}	
+
+	function isPointOnPath(point, { max=null }={}) {
 		// returns true if a point is on the current path
 		if (!complexPathPoints)
 			return false
@@ -47,14 +50,18 @@ function inject (bot) {
 		if (complexPathPoints.length == 1)
 			return isPlayerOnBlock(point, complexPathPoints[0])
 		let pathIndex
-		for (pathIndex = 1; pathIndex < complexPathPoints.length; ++pathIndex) {
+		for (pathIndex = 1; pathIndex < Math.min(complexPathPoints.length, max ?? 100); ++pathIndex) {
 			let segmentStart = complexPathPoints[pathIndex - 1]
 			let segmentEnd = complexPathPoints[pathIndex]
 
-			if (isPlayerOnBlock(point, segmentStart) || isPlayerOnBlock(point, segmentEnd)) return true
+			if (isPlayerOnBlock(point, segmentStart) || isPlayerOnBlock(point, segmentEnd)) {
+				return true
+			}
 
 			let calculatedDistance = distanceFromLine(segmentStart, segmentEnd, point.offset(-.5, 0, -.5))
-			if (calculatedDistance < .7) return true
+			if (calculatedDistance < .7 && (bot.entity.onGround || willBeOnGround())) {
+				return true
+			}
 		}
 		return false
 	}
@@ -74,10 +81,10 @@ function inject (bot) {
 
 	function simulateUntil(func, ticks=1, controlstate={}, returnState=false, returnInitial=true, extraState) {
 		// simulate the physics for the bot until func returns true for a number of ticks
-		const originalState = getControlState()
-		const simulationState = originalState
-		Object.assign(simulationState, controlstate)
-		const state = new PlayerState(bot, simulationState)
+		const originalControl = getControlState()
+		const simulationControl = originalControl
+		Object.assign(simulationControl, controlstate)
+		const state = new PlayerState(bot, simulationControl)
 		Object.assign(state, extraState)
 		if (func(state) && returnInitial) return state
 		const world = { getBlock: (pos) => { return bot.blockAt(pos, false) } }
@@ -85,7 +92,7 @@ function inject (bot) {
 		let airTicks = 0
 
 		for (let i = 0; i < ticks; i++) {
-			state.state = simulationState
+			state.control = simulationControl
 			bot.physics.simulatePlayer(state, world)
 
 			// this is used by tryStraightPath to make sure it doesnt take fall damage
@@ -96,6 +103,10 @@ function inject (bot) {
 			if (func(state)) return state
 		}
 		return returnState ? state : false
+	}
+
+	function nextTickState() {
+		return simulateUntil(() => false, 1, {}, true)
 	}
 
 
@@ -110,7 +121,6 @@ function inject (bot) {
 		
 		const isOnPath = isPointOnPath(returnState.pos)
 		if (!isOnPath) return false
-		
 		return true
 	}
 
@@ -121,7 +131,7 @@ function inject (bot) {
 			const jumpDistance = bot.entity.position.distanceTo(state.pos)
 			let fallDistance = bot.entity.position.y - state.pos.y
 			if (jumpDistance <= 1 || fallDistance > 2) return false
-			const isOnPath = isPointOnPath(state.pos)
+			const isOnPath = isPointOnPath(state.pos, { max: 10 })
 			if (!isOnPath) return false
 			return true
 		}
@@ -141,7 +151,7 @@ function inject (bot) {
 
 	function shouldAutoJump() {
 		// checks if there's a block in front of the bot
-		const scaledVelocity = bot.entity.velocity.scaled(20).floored()
+		const scaledVelocity = bot.entity.velocity.scaled(10).floored()
 		let velocity = scaledVelocity.min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
 		let blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
 		let blockInFront = bot.blockAt(blockInFrontPos, false)
@@ -163,7 +173,8 @@ function inject (bot) {
 		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
 
 		// if it's moving slowly and its touching a block, it should probably jump
-		if (bot.entity.isCollidedHorizontally && bot.entity.velocity.x + bot.entity.velocity.z < 0.01) {
+		const { x: velX, y: velY, z: velZ } = bot.entity.velocity
+		if (bot.entity.isCollidedHorizontally && velX + velZ < 0.01 && (velY > .1 || velY < -.1)) {
 			return true
 		}
 		return blockInFront.boundingBox === 'block' && blockInFront1 === 'empty' && blockInFront2 === 'empty'
@@ -172,6 +183,7 @@ function inject (bot) {
 
 	async function straightPathTick() {
 		// straight line towards the current target, and jump if necessary
+		if (!straightPathOptions) return false
 		bot.setControlState('sprint', !walkingUntilGround)
 		bot.setControlState('forward', true)
 		const target = straightPathOptions.target
@@ -180,10 +192,12 @@ function inject (bot) {
 			await bot.lookAt(target.offset(.5, 1.625, .5), true)
 		}
 		if (!isPlayerOnBlock(bot.entity.position, target, bot.entity.onGround) && !(allowSkippingPath && isPointOnPath(bot.entity.position))) {
-			let blockBelow = bot.world.getBlock(bot.entity.position.offset(0, -1.5, 0).floored())
-			if (blockBelow && blockBelow.name == 'water') {
+			let blockInside = bot.world.getBlock(bot.entity.position.offset(0, 0, 0).floored())
+			let blockInside2 = bot.world.getBlock(bot.entity.position.offset(0, 0, 0).floored())
+			if (blockInside && (blockInside.name == 'water' || blockInside2.name == 'water') && target.y >= bot.entity.position.y - .5) {
 				// in water
 				bot.setControlState('jump', true)
+				bot.setControlState('sprint', false)
 			} else if (bot.entity.onGround && shouldAutoJump()) {
 				bot.setControlState('jump', true)
 				// autojump!
@@ -205,12 +219,15 @@ function inject (bot) {
 		} else {
 			// arrived at path ending :)
 			// there will be more paths if its using complex pathfinding
+			bot.setControlState('jump', false)
 			if (straightPathOptions)
 				straightPathOptions.resolve()
 			straightPathOptions = null
 			headLockedUntilGround = false
 			walkingUntilGround = false
+			return true
 		}
+		return false
 	}
 
 	function straightPath({ target, skip }) {
@@ -293,7 +310,7 @@ function inject (bot) {
 			complexPathPoints = [start, position]
 			await straightPath({target: position, skip: false})
 		} else {
-			const timeout = position.distanceTo(start) > 10 ? bot.pathfinder.maxTimeout : bot.pathfinder.nearbyTimeout
+			const timeout = bot.pathfinder.timeout
 			const result = await AStar({
 				start: start,
 				isEnd: (node) => {
@@ -347,9 +364,9 @@ function inject (bot) {
 		straightPathOptions = null
 	}
 
-	function moveTick() {
+	async function moveTick() {
 		if (targetEntity) followTick()
-		if (straightPathOptions !== null) straightPathTick()
+		if (straightPathOptions !== null) if (await straightPathTick()) straightPathTick()
 	}
 
 	bot.on('physicTick', moveTick)
