@@ -9,7 +9,8 @@ const cardinalDirections = [
 ]
 
 class Move {
-	constructor(world, origin, dir) {
+	constructor() {}
+	setValues(world, origin, dir) {
 		this.world = world
 		this.origin = origin
 		this.dir = dir
@@ -84,20 +85,22 @@ class Move {
 	}
 }
 
-const moves = []
+const moveClasses = []
 
 
-function registerMoves(move) {
-	moves.push(...move)
+function registerMoves(moves) {
+	for (const moveClass of moves) {
+		moveClasses.push(new moveClass())
+	}
 }
 
 function getNeighbors(world, node) {
 	let neighbors = []
 
-	for (const moveClass of moves) {
+	for (const move of moveClasses) {
 		for (const dir of cardinalDirections) {
-			const move = new moveClass(world, node, dir)
-			neighbors.push(...move.getNeighbors())
+			move.setValues(world, node, dir)
+			move.addNeighbors(neighbors)
 		}
 	}
 
