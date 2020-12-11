@@ -47,7 +47,7 @@ function inject (bot) {
 				return true
 			}
 
-			let calculatedDistance = distanceFromLine(segmentStart, segmentEnd, point.offset(-.5, 0, -.5))
+			let calculatedDistance = distanceFromLine(segmentStart, segmentEnd, point.offset(.5, 0, .5))
 			if (calculatedDistance < .7 && (bot.entity.onGround || willBeOnGround())) {
 				return true
 			}
@@ -141,34 +141,14 @@ function inject (bot) {
 	
 
 	function shouldAutoJump() {
-		// checks if there's a block in front of the bot
-		const scaledVelocity = bot.entity.velocity.scaled(10).floored()
-		let velocity = scaledVelocity.min(new Vec3(1, 0, 1)).max(new Vec3(-1, 0, -1))
-		let blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
-		let blockInFront = bot.blockAt(blockInFrontPos, false)
-		if (blockInFront === null) return
-
-		if (blockInFront.boundingBox !== 'block') {
-			// x
-			velocity = scaledVelocity.min(new Vec3(1, 0, 0)).max(new Vec3(-1, 0, 0))
-			blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
-			blockInFront = bot.blockAt(blockInFrontPos, false)	
-		}
-		if (blockInFront.boundingBox !== 'block') {
-			// z
-			velocity = scaledVelocity.min(new Vec3(0, 0, 1)).max(new Vec3(0, 0, -1))
-			blockInFrontPos = bot.entity.position.offset(0, 1, 0).plus(velocity)
-			blockInFront = bot.blockAt(blockInFrontPos, false)	
-		}
-		let blockInFront1 = bot.blockAt(blockInFrontPos.offset(0, 1, 0), false)
-		let blockInFront2 = bot.blockAt(blockInFrontPos.offset(0, 2, 0), false)
-
 		// if it's moving slowly and its touching a block, it should probably jump
 		const { x: velX, y: velY, z: velZ } = bot.entity.velocity
-		if (bot.entity.isCollidedHorizontally && Math.abs(velX) + Math.abs(velZ) < 0.01 && (Math.abs(velY) < .1)) {
-			return true
-		}
-		return blockInFront.boundingBox === 'block' && blockInFront1.boundingBox === 'empty' && blockInFront2.boundingBox === 'empty'
+		return (
+			bot.entity.isCollidedHorizontally
+			&& Math.abs(velX) < 0.01
+			&& Math.abs(velZ) < 0.01
+			&& (Math.abs(velY) < .1)
+		)
 	}
 
 
@@ -297,7 +277,12 @@ function inject (bot) {
 		if(!(pathGoal instanceof goals.Goal))
 			pathGoal = new goals.GoalBlock(pathGoal.x, pathGoal.y, pathGoal.z)
 
-		let pathNumber = ++currentPathNumber
+		let pathNumber
+
+		if (options.incPath == false)
+			pathNumber = currentPathNumber
+		else
+			pathNumber = ++currentPathNumber
 		bot.pathfinder.complexPathOptions = options
 		complexPathGoal = pathGoal
 		calculating = true
@@ -344,15 +329,18 @@ function inject (bot) {
 			while (complexPathPoints.length > 0) {
 				const movement = complexPathPoints[0]
 				await straightPath({target: movement})
+				if (bot.pathfinder.debug)
+					console.log('now at', movement)
 				if (currentCalculatedPathNumber > pathNumber || complexPathPoints === null) return
 				complexPathPoints.shift()
 			}
-			// if (result.status == 'timeout') {
-			// 	// if it times out, recalculate once we reach the end
-			// 	complexPathPoints = null
-			// 	bot.clearControlStates()
-			// 	return await complexPath(pathGoal, options={})
-			// }
+			if (result.status == 'timeout') {
+				// if it times out, recalculate once we reach the end
+				complexPathPoints = null
+				bot.clearControlStates()
+				options.incPath = false
+				return await complexPath(pathGoal, options)
+			}
 		}
 		complexPathPoints = null
 		bot.clearControlStates()
