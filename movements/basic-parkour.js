@@ -211,9 +211,53 @@ class MoveDiagonalDownParkour extends Move {
 }
 
 
+class MoveForwardParkour extends Move {
+	getNeighbors() {
+		const moves1 = new MoveForwardParkour1(this.world, this.origin, this.dir)
+		if (moves1.length > 0)
+			return moves1
+		const moves2 = new MoveForwardParkour2(this.world, this.origin, this.dir)
+		if (moves2.length > 0)
+			return moves2
+		const moves3 = new MoveForwardParkour3(this.world, this.origin, this.dir)
+		if (moves3.length > 0)
+			return moves3
+		return []
+	}
+}
+
+
+class MoveForwardUpParkour extends Move {
+	getNeighbors() {
+		const moves1 = new MoveForwardUpParkour1(this.world, this.origin, this.dir)
+		if (moves1.length > 0)
+			return moves1
+		const moves2 = new MoveForwardUpParkour2(this.world, this.origin, this.dir)
+		if (moves2.length > 0)
+			return moves2
+		return []
+	}
+}
+
+class MoveForwardDownParkour extends Move {
+	getNeighbors() {
+		const moves1 = new MoveForwardDownParkour1(this.world, this.origin, this.dir)
+		if (moves1.length > 0)
+			return moves1
+		const moves2 = new MoveForwardDownParkour2(this.world, this.origin, this.dir)
+		if (moves2.length > 0)
+			return moves2
+		return []
+	}
+}
+
+
 registerMoves([
-	MoveForwardParkour1, MoveForwardParkour2, MoveForwardParkour3,
-	MoveForwardUpParkour1, MoveForwardUpParkour2, //MoveForwardUpParkour3, this is too hard for the bot to do consistently
-	MoveForwardDownParkour1, MoveForwardDownParkour2,
+	MoveForwardParkour,
+	// MoveForwardParkour1, MoveForwardParkour2, MoveForwardParkour3,
+	// MoveForwardUpParkour1, MoveForwardUpParkour2, //MoveForwardUpParkour3, this is too hard for the bot to do consistently
+	MoveForwardUpParkour,
+	// MoveForwardDownParkour1, MoveForwardDownParkour2,
+	MoveForwardDownParkour,
 	MoveDiagonalParkour, MoveDiagonalUpParkour, MoveDiagonalDownParkour
 ])

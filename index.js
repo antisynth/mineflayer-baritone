@@ -303,7 +303,7 @@ function inject (bot) {
 		continuousPath = true
 		const start = bot.entity.position.floored()
 
-		if (bot.pathfinder.straightLine && tryStraightPath(position)) {
+		if (false && bot.pathfinder.straightLine && tryStraightPath(position)) {
 			bot.lookAt(position, true)
 			calculating = false
 			goingToPathTarget = position.clone()
@@ -311,23 +311,32 @@ function inject (bot) {
 			await straightPath({target: position, skip: false})
 		} else {
 			const timeout = bot.pathfinder.timeout
-			const result = await AStar({
-				start: start,
-				isEnd: (node) => {
-					let distance = node.distanceTo(position)
-					if (bot.pathfinder.complexPathOptions.maxDistance && distance > bot.pathfinder.complexPathOptions.maxDistance) return false
-					else if (bot.pathfinder.complexPathOptions.minDistance && distance < bot.pathfinder.complexPathOptions.minDistance) return false
-					else if (bot.pathfinder.complexPathOptions.maxDistance || bot.pathfinder.complexPathOptions.minDistance) return true
-					return isPlayerOnBlock(node, position)
-				},
-				neighbor: (node) => {
-					return movements.getNeighbors(bot.world, node)
-				},
-				heuristic: (node) => {
-					return node.distanceTo(position)
-				},
-				timeout
-			})
+			let summedTimes = 0
+			for (let i = 0;i<100;i++) {
+				let calculateStart = performance.now()
+				const result = await AStar({
+					start: start,
+					isEnd: (node) => {
+						let distance = node.distanceTo(position)
+						if (bot.pathfinder.complexPathOptions.maxDistance && distance > bot.pathfinder.complexPathOptions.maxDistance) return false
+						else if (bot.pathfinder.complexPathOptions.minDistance && distance < bot.pathfinder.complexPathOptions.minDistance) return false
+						else if (bot.pathfinder.complexPathOptions.maxDistance || bot.pathfinder.complexPathOptions.minDistance) return true
+						return isPlayerOnBlock(node, position)
+					},
+					neighbor: (node) => {
+						return movements.getNeighbors(bot.world, node)
+					},
+					heuristic: (node) => {
+						return node.distanceTo(position)
+					},
+					timeout
+				})
+				let calculateEnd = performance.now()
+				summedTimes += calculateEnd - calculateStart
+				console.log(calculateEnd - calculateStart)
+			}
+			console.log(summedTimes/100, 'average')
+			return
 			if (currentCalculatedPathNumber > pathNumber) return
 			else currentCalculatedPathNumber = pathNumber
 			goingToPathTarget = position.clone()
