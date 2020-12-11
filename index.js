@@ -334,7 +334,7 @@ function inject (bot) {
 				if (currentCalculatedPathNumber > pathNumber || complexPathPoints === null) return
 				complexPathPoints.shift()
 			}
-			if (result.status == 'timeout') {
+			if (result.status == 'timeout' && pathNumber == currentPathNumber) {
 				// if it times out, recalculate once we reach the end
 				complexPathPoints = null
 				bot.clearControlStates()
