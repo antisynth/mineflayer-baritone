@@ -257,6 +257,7 @@ function inject (bot) {
 			console.log(entity.onGround)
 		if (!entity) return
 		if (!entity.onGround) return
+		if (!bot.entity.onGround) return
 
 		const distance = bot.entity.position.distanceTo(entity.position)
 		if (bot.pathfinder.complexPathOptions.maxDistance && distance > bot.pathfinder.complexPathOptions.maxDistance) {}
