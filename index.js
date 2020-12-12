@@ -334,6 +334,8 @@ function inject (bot) {
 				if (currentCalculatedPathNumber > pathNumber || complexPathPoints === null) return
 				complexPathPoints.shift()
 			}
+			if (options.correctEnd)
+				await straightPath({target: pathGoal.pos})
 			if (result.status == 'timeout' && pathNumber == currentPathNumber) {
 				// if it times out, recalculate once we reach the end
 				complexPathPoints = null
@@ -347,7 +349,8 @@ function inject (bot) {
 	}
 
 
-	bot.pathfinder.goto = async (position, options={}) => {
+	bot.pathfinder.goto = async (position, options={correctEnd: true}) => {
+		bot.clearControlStates()
 		await complexPath(position, options)
 	}
 
