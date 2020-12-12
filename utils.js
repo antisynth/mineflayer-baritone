@@ -5,12 +5,11 @@ function isPlayerOnBlock(playerPosition, blockPosition, onGround=false) {
 	
 	if (!blockPosition) return false // theres no target position lmao
 	
-	blockPosition = blockPosition.offset(.5, 0, .5)
+	blockPosition = blockPosition.floored().offset(.5, 0, .5)
 	const xDistance = Math.abs(playerPosition.x - blockPosition.x)
 	const zDistance = Math.abs(playerPosition.z - blockPosition.z)
 	const yDistance = Math.abs(playerPosition.y - blockPosition.y)
-
-	const onBlock = (xDistance < .7 && zDistance < .7 && yDistance < 1) || (onGround && xDistance < .8 && zDistance < .8 && yDistance == 0)
+	const onBlock = (xDistance < .7 && zDistance < .7 && yDistance < 1) || (onGround && xDistance < .8 && zDistance < .8 && yDistance < 0.001)
 	return onBlock
 }
 

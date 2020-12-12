@@ -3,9 +3,9 @@ const { performance } = require('perf_hooks')
 
 module.exports = AStar
 
-function AStar({ start, goal, neighbor, timeout, hash }) {
+function AStar({ start, goal, neighbor, timeout, bot }) {
 	if (timeout === undefined) timeout = Infinity
-	hash = hash || defaultHash
+	hash = defaultHash
 
 	const startNode = {
 		data: start,
@@ -24,24 +24,29 @@ function AStar({ start, goal, neighbor, timeout, hash }) {
 
 	return new Promise(async(resolve) => {
 		let lastSleep = performance.now()
+		let iterationCount = 0
 		while (!openHeap.isEmpty()) {
+			iterationCount ++
 			if (performance.now() - lastSleep >= 50) {
 				// need to do this so the bot doesnt lag
 				await new Promise(r => setTimeout(r, 0))
 				lastSleep = performance.now()
 			}
 
-			if (performance.now() - startTime > timeout)
+			if (performance.now() - startTime > timeout) {
+				console.log('timeout iterationCount', iterationCount)
 				return resolve({
 					status: 'timeout',
 					cost: bestNode.g,
 					path: reconstructPath(bestNode)
 				})
+			}
 
 			const node = openHeap.pop()
 			openDataMap.delete(hash(node.data))
 			if (goal.isEnd(node.data)) {
 				// done
+				console.log('success iterationCount', iterationCount)
 				return resolve({
 					status: 'success',
 					cost: node.g,
@@ -50,14 +55,14 @@ function AStar({ start, goal, neighbor, timeout, hash }) {
 			}
 			// not done yet
 			closedDataSet.add(hash(node.data))
-			var neighbors = neighbor(node.data)
+			const neighbors = neighbor(node.data)
 			for (const neighborData of neighbors) {
 				if (closedDataSet.has(hash(neighborData)))
 					// skip closed neighbors
 					continue
-				var gFromThisNode = node.g + neighborData.cost
-				var neighborNode = openDataMap.get(hash(neighborData))
-				var update = false
+				const gFromThisNode = node.g + neighborData.cost
+				let neighborNode = openDataMap.get(hash(neighborData))
+				let update = false
 				if (neighborNode === undefined) {
 					// add neighbor to the open set
 					neighborNode = {
@@ -85,6 +90,7 @@ function AStar({ start, goal, neighbor, timeout, hash }) {
 				}
 			}
 		}
+		console.log('noPath iterationCount', iterationCount)
 		return resolve({
 			status: 'noPath',
 			cost: bestNode.g,
@@ -106,5 +112,5 @@ function reconstructPath(node) {
 }
 
 function defaultHash(node) {
-	return node.toString()
+	return node.x + ' ' + node.y + ' ' + node.z
 }

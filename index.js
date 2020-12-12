@@ -36,7 +36,7 @@ function inject (bot) {
 		if (!complexPathPoints)
 			return false
 
-		if (complexPathPoints.length == 1)
+		if (complexPathPoints.length === 1)
 			return isPlayerOnBlock(point, complexPathPoints[0], onGround)
 		let pathIndex
 		for (pathIndex = 1; pathIndex < Math.min(complexPathPoints.length, max ?? 100); ++pathIndex) {
@@ -92,10 +92,6 @@ function inject (bot) {
 			if (func(state)) return state
 		}
 		return returnState ? state : false
-	}
-
-	function nextTickState() {
-		return simulateUntil(() => false, 1, {}, true)
 	}
 
 
@@ -165,7 +161,7 @@ function inject (bot) {
 		if (!isPlayerOnBlock(bot.entity.position, target, bot.entity.onGround) && !(allowSkippingPath && isPointOnPath(bot.entity.position))) {
 			let blockInside = bot.world.getBlock(bot.entity.position.offset(0, 0, 0).floored())
 			let blockInside2 = bot.world.getBlock(bot.entity.position.offset(0, 0, 0).floored())
-			if (blockInside && (blockInside.name == 'water' || blockInside2.name == 'water') && target.y >= bot.entity.position.y - .5) {
+			if (blockInside && (blockInside.name === 'water' || blockInside2.name === 'water') && target.y >= bot.entity.position.y - .5) {
 				// in water
 				bot.setControlState('jump', true)
 				bot.setControlState('sprint', false)
@@ -268,7 +264,7 @@ function inject (bot) {
 		}
 		
 		// try sprint jumping towards the player for 10 seconds
-		const returnState = simulateUntil(shouldStop, 200, {jump: true, sprint: true, forward: true}, true, false, convertPointToDirection(goal.pos))
+		const returnState = simulateUntil(shouldStop, 200, {jump: false, sprint: true, forward: true}, true, false, convertPointToDirection(goal.pos))
 		if (!isStateGood(returnState)) return false
 		return true
 	}
@@ -279,7 +275,7 @@ function inject (bot) {
 
 		let pathNumber
 
-		if (options.incPath == false)
+		if (options.incPath === false)
 			pathNumber = currentPathNumber
 		else
 			pathNumber = ++currentPathNumber
@@ -334,14 +330,20 @@ function inject (bot) {
 				if (currentCalculatedPathNumber > pathNumber || complexPathPoints === null) return
 				complexPathPoints.shift()
 			}
-			if (options.correctEnd)
-				await straightPath({target: pathGoal.pos})
-			if (result.status == 'timeout' && pathNumber == currentPathNumber) {
+			if (result.status === 'timeout' && pathNumber === currentPathNumber) {
 				// if it times out, recalculate once we reach the end
 				complexPathPoints = null
 				bot.clearControlStates()
 				options.incPath = false
+				if (bot.pathfinder.debug)
+					console.log('timeout, continuing', pathGoal.pos)
 				return await complexPath(pathGoal, options)
+			} else {
+				if (options.correctEnd) {
+					if (bot.pathfinder.debug)
+						console.log('pathGoal.pos', pathGoal.pos)
+					await straightPath({target: pathGoal.pos})
+				}
 			}
 		}
 		complexPathPoints = null

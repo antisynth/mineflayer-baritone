@@ -20,8 +20,8 @@ class MoveForwardParkour2 extends Move {
 		let spaceNode1 = this.forward(1).up(1)
 		let spaceNode2 = this.forward(2).up(1)
 		if (
-			   this.isWalkable(spaceNode1)
-			&& this.isWalkable(spaceNode2)
+			   this.isJumpable(spaceNode1)
+			&& this.isJumpable(spaceNode2)
 			&& this.isStandable(landingNode)
 		)
 			neighbors.push(this.makeMovement(landingNode, 2.5))
