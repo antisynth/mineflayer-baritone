@@ -1,3 +1,5 @@
+const { RaycastIterator } = require('mineflayer/lib/iterators')
+
 function isPlayerOnBlock(playerPosition, blockPosition, onGround=false) {
 	// returns true if you can stand on the block
 	
@@ -10,6 +12,40 @@ function isPlayerOnBlock(playerPosition, blockPosition, onGround=false) {
 
 	const onBlock = (xDistance < .7 && zDistance < .7 && yDistance < 1) || (onGround && xDistance < .8 && zDistance < .8 && yDistance == 0)
 	return onBlock
+}
+
+function getViewDirection (pitch, yaw) {
+	const csPitch = Math.cos(pitch)
+	const snPitch = Math.sin(pitch)
+	const csYaw = Math.cos(yaw)
+	const snYaw = Math.sin(yaw)
+	return new Vec3(-snYaw * csPitch, snPitch, -csYaw * csPitch)
+}
+
+function blockIsNotEmpty(pos) {
+	const block = bot.blockAt(pos, false)
+	return block !== null && block.boundingBox !== 'empty'
+}
+
+function canReach(startPosition, endPosition, maxDistance=3) {
+	let stepSize = endPosition.minus(startPosition)
+	let distance = Math.sqrt(stepSize.x * stepSize.x + stepSize.y * stepSize.y + stepSize.z * stepSize.z)
+	if (distance > maxDistance) return false
+	stepSize = stepSize.scaled(1 / distance)
+	stepSize = stepSize.scaled(1 / 5)
+	const totalSteps = distance * 5
+	let stepPosition
+	let previousPosition = startPosition
+	for (let i = 1; i < totalSteps; i++) {
+		stepPosition = previousPosition.plus(stepSize)
+		// check that blocks don't inhabit the same position
+		if (!stepPosition.floored().equals(previousPosition.floored())) {
+			// check block is not transparent
+			if (blockIsNotEmpty(stepPosition)) return false
+		}
+		previousPosition = stepPosition
+	}
+	return true
 }
 
 // (node) => {
